@@ -1,0 +1,26 @@
+{
+    "version": "1.0.0",
+    "scanPath": "source/",
+    "buildPath": "build/",
+    "tmpPath": "build/tmp/",
+    "files": [
+        "source/dlexer.c",
+        "source/dstate.c",
+        "source/deltabasic.c",
+        "source/dmemory.c",
+        "source/dcompiler.c",
+        "source/dstring.c"
+    ],
+    "compile": {
+        "default": {
+            "compilerExec": "gcc -c -O2 -std=gnu99 -lm -I source/",
+            "linkerExec": "gcc -O2 -std=gnu99 -lm -I source/",
+            "outname": "dbas"
+        },
+        "debug": {
+            "compilerExec": "gcc -g -c -std=gnu99 -lm -I source/",
+            "linkerExec": "gcc -g -std=gnu99 -lm -I source/",
+            "outname": "dbas_debug"
+        }
+    }
+}
