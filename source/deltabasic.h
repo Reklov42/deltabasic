@@ -18,17 +18,20 @@ typedef DELTABASIC_CONFIG_NUMBER							delta_TNumber;
 typedef DELTABASIC_CONFIG_CHAR								delta_TChar;
 
 // ------------------------------------------------------------------------- //
+//
+//
 
 /* ====================================
  * delta_EStatus
  */
 typedef enum {
 	DELTA_OK,
+	DELTA_END,
 	DELTA_STATE_IS_NULL,
 	DELTA_STRING_IS_NULL,
-	DELTA_ALLOCATOR_ERROR
+	DELTA_ALLOCATOR_ERROR,
+	DELTA_SYNTAX_ERROR
 } delta_EStatus;
-
 
 /* ====================================
  * delta_SState
@@ -59,6 +62,8 @@ delta_SState*		delta_CreateState(delta_TAllocFunction allocFunc, void* allocFunc
 void				delta_ReleaseState(delta_SState* D);
 
 // ------------------------------------------------------------------------- //
+//
+//
 
 /* ====================================
  * delta_GotoLine
@@ -67,6 +72,8 @@ int					delta_GotoLine(delta_SState* D, size_t line);
 
 /* ====================================
  * delta_New
+ *
+ * Delete all lines and clear bytecode buffer
  */
 void				delta_New(delta_SState* D);
 
@@ -76,13 +83,25 @@ void				delta_New(delta_SState* D);
 void				delta_Break(delta_SState* D);
 
 // ------------------------------------------------------------------------- //
+//
+//
 
 /* ====================================
  * delta_Execute
  */
 delta_EStatus		delta_Execute(delta_SState* D, const char str[]);
 
+/* ====================================
+ * delta_Interpret
+ *
+ * Interpret nInstructions VM's instructions
+ * If N set to zero, interpret all code
+ */
+delta_EStatus		delta_Interpret(size_t nInstructions);
+
 // ------------------------------------------------------------------------- //
+//
+//
 
 /* ====================================
  * TReadFunction
@@ -95,6 +114,8 @@ typedef size_t (*delta_TReadFunction)(void* pData, size_t size, size_t count);
 delta_EStatus		delta_Load(delta_SState* D, delta_TReadFunction readFunc);
 
 // ------------------------------------------------------------------------- //
+//
+//
 
 /* ====================================
  * delta_TPrintFunction

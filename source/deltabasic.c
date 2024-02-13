@@ -18,6 +18,8 @@
 #include "dmemory.h"
 #include "dcompiler.h"
 
+#define CreateStateAssert(exp)	if (exp) { delta_ReleaseState(D); return NULL; }
+
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -83,13 +85,27 @@ int main(int argc, char* argv[]) {
 		printf("> ");
 		fgets(buffer, 256, stdin);
 
-		delta_Execute(D, buffer);
+		delta_EStatus status = delta_Execute(D, buffer);
+		/*
 		if (delta_Compile(D) == DELTA_OK) {
 			for (size_t i = 0; i < D->bytecodeSize; ++i) {
 				printf("%2X ", D->bytecode[i]);
 				if (i % 15 == 0)
 					printf("\n");
 			}
+		}*/
+		if (status != DELTA_OK) {
+			if (status == DELTA_ALLOCATOR_ERROR)
+				printf("DELTA_ALLOCATOR_ERROR\n");
+
+			if (status == DELTA_SYNTAX_ERROR)
+				printf("DELTA_SYNTAX_ERROR\n");
+		}
+		
+		for (size_t i = 0; i < DELTABASIC_EXEC_BYTECODE_SIZE; ++i) {
+			printf("%02X ", D->bytecode[i]);
+			if (i % 16 == 15)
+				printf("\n");
 		}
 	}
 
@@ -163,6 +179,14 @@ delta_SState* delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncU
 	D->allocFuncUserData	= allocFuncUserData;
 	D->printFunction		= delta_Print;
 
+	D->execLine				= (delta_SLine*)DELTA_Alloc(D, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
+	CreateStateAssert(D->execLine == NULL);
+	D->execLine->str		= ((delta_TByte*)D->execLine) + sizeof(delta_SLine);
+
+	D->bytecodeSize			= DELTABASIC_EXEC_BYTECODE_SIZE + DELTABASIC_COMPILER_INITIAL_BYTECODE_SIZE;
+	D->bytecode				= (delta_TByte*)DELTA_Alloc(D, sizeof(delta_TByte) * D->bytecodeSize);
+	CreateStateAssert(D->bytecode == NULL);
+
 	return D;
 }
 
@@ -173,8 +197,11 @@ void delta_ReleaseState(delta_SState* D) {
 	if (D == NULL)
 		return;
 
-	delta_TAllocFunction allocFunc = D->allocFunction;
-	void* userData = D->allocFuncUserData;
+	delta_TAllocFunction allocFunc	= D->allocFunction;
+	void* userData					= D->allocFuncUserData;
+
+	DELTA_Free(D, D->execLine, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
+	DELTA_Free(D, D->bytecode, sizeof(delta_TByte) * D->bytecodeSize);
 
 	{
 		delta_SLine* line = D->head;
@@ -190,34 +217,51 @@ void delta_ReleaseState(delta_SState* D) {
 	allocFunc(D, sizeof(delta_SState), 0, userData);
 }
 
+// ------------------------------------------------------------------------- //
+
 /* ====================================
  * delta_Execute
  */
-delta_EStatus delta_Execute(delta_SState* D, const char str[]) {
+delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
-	if (str == NULL)
+	if (execStr == NULL)
 		return DELTA_STRING_IS_NULL;
 
-	delta_TInteger lineNumber = 0;
-	str = delta_ReadInteger(str, &lineNumber);
-	if (str == NULL) {
+	while (*execStr == ' ')
+		++execStr;
 
+	const delta_TChar* end = execStr + strlen(execStr);
+	if (*end == '\n')
+		--end;
+
+	while ((*end == ' ') && (execStr < end))
+		--end;
+	
+	const size_t size = execStr - end;
+
+	delta_TInteger lineNumber = 0;
+	const char* str = delta_ReadInteger(execStr, &lineNumber);
+	if (str == NULL) {
+		delta_SBytecode bc;
+		bc.bytecodeSize	= DELTABASIC_EXEC_BYTECODE_SIZE;
+		bc.index		= 0;
+		bc.bytecode		= D->bytecode;
+		bc.bCanResize	= dfalse;
+
+		memset(bc.bytecode, 0xFF, DELTABASIC_EXEC_BYTECODE_SIZE);
+
+		memcpy(D->execLine->str, execStr, DELTABASIC_MIN(size, DELTABASIC_EXEC_STRING_SIZE));
+
+		delta_EStatus status = delta_CompileLine(D, D->execLine, &bc);
+		if (status != DELTA_OK)
+			return status;
+
+		D->currentLine = D->execLine;
+		D->ip = 0;
 	}
 	else {
-		while (*str == ' ')
-			++str;
-
-		const delta_TChar* end = str + strlen(str);
-		if (*end == '\n')
-			--end;
-
-		while ((*end == ' ') && (str < end))
-			--end;
-		
-		const size_t size = str - end;
-
 		D->bCompiled = dfalse;
 		if (size == 0)
 			delta_RemoveLine(D, lineNumber);
@@ -229,18 +273,6 @@ delta_EStatus delta_Execute(delta_SState* D, const char str[]) {
 
 	return DELTA_OK;
 }
-
-/* ====================================
- * delta_InterpretString
- */
-delta_EStatus delta_InterpretString(delta_SState* D, const char str[]) {
-	if (D == NULL)
-		return DELTA_STATE_IS_NULL;
-
-	return DELTA_OK;
-}
-
-// ------------------------------------------------------------------------- //
 
 
 // ------------------------------------------------------------------------- //

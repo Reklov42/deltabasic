@@ -15,6 +15,8 @@
 #define DELTABASIC_CAST(type, exp)							((type)(exp))
 #define DELTABASIC_UNUSED(rv)								((void)(rv)) // to avoid warnings
 
+#define DELTABASIC_MIN(a, b)								(((a) > (b)) ? (b) : (a))
+
 #define dtrue												1
 #define dfalse												0
 
@@ -22,6 +24,7 @@ typedef int													delta_TBool;
 
 typedef uint8_t												delta_TByte;
 typedef uint16_t											delta_TWord;
+typedef uint32_t											delta_TDWord;
 
 typedef long												delta_TInteger;
 

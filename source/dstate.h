@@ -48,6 +48,9 @@ struct delta_SState {
 	delta_TPrintFunction	printFunction;
 
 	size_t					ip; // Instruction Pointer
+	delta_SLine*			currentLine;
+
+	delta_SLine*			execLine;
 
 	size_t					bytecodeSize;
 	delta_TByte*			bytecode;

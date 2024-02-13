@@ -13,6 +13,8 @@
 
 #include "dstring.h"
 
+#define parseHead (L->head)
+
 // ------------------------------------------------------------------------- //
 					//										//										//
 
@@ -27,38 +29,11 @@ static const delta_TChar* op_table[] = {
 // ------------------------------------------------------------------------- //
 
 /* ====================================
- * CompareStrings
- *
- * strB must end with a null-terminal
+ * GetNextChar
  */
-static delta_TBool CompareStrings(const delta_TChar strA[], const delta_TChar strB[]);
+static delta_TChar GetNextChar(const delta_TChar** str);
 
 // ------------------------------------------------------------------------- //
-
-/* ====================================
- * delta_ReadOp
- */
-const delta_TChar* delta_ReadOp(const delta_TChar str[], delta_EOp* op) {
-	if (str == NULL)
-		return NULL;
-	
-	while (*str == ' ')
-		++str;
-
-	if (isalpha(*str) == 0)
-		return NULL;
-
-	for (size_t i = 0; i < DELTA_OP_TABLE_SIZE; ++i) {
-		if (CompareStrings(str, op_table[i]) == dtrue) {
-			if (op != NULL)
-				*op = i + 1;
-
-			return str + delta_Strlen(op_table[i]);
-		}
-	}
-
-	return NULL;
-}
 
 /* ====================================
  * delta_GetOpName
@@ -77,7 +52,7 @@ const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
 	if (str == NULL)
 		return NULL;
 	
-	while (*str == ' ')
+	while ((*str == ' ') && (*str == '\0'))
 		++str;
 
 	if (isdigit(*str) == 0)
@@ -92,22 +67,148 @@ const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
 	return str;
 }
 
-// ------------------------------------------------------------------------- //
+/* ====================================
+ * delta_ReadWord
+ */
+const delta_TChar* delta_ReadWord(const delta_TChar str[], const delta_TChar** wordStart, size_t* size) {
+	if ((str == NULL))
+		return NULL;
+
+	while (((*str == ' ') && (*str == '\0')) && (isalpha(*str) == 0) && (*str != '_'))
+			++str;
+
+	if (wordStart != NULL)
+		*wordStart = str;
+
+	size_t s = 0;
+	while ((isalpha(*str) != 0) || (*str == '_')) {
+		++s;
+		++str;
+	}
+
+	if (size != NULL)
+		*size = s;
+
+	return str;
+}
 
 /* ====================================
  * CompareStrings
  */
-inline delta_TBool CompareStrings(const delta_TChar strA[], const delta_TChar strB[]) {
-	while ((*strA != '\0') && (*strB != '\0')) {
-		if (*strA != *strB)
-			return dfalse;
+delta_EParseStatus delta_Parse(delta_SLexerState* L) {
+	if (L->buffer == NULL)
+		return PARSE_STRING_IS_NULL;
 
-		++strA;
-		++strB;
+	if (L->head == NULL)
+		L->head = L->buffer;
+
+	while (*parseHead != '\0') {
+		if (isdigit(*parseHead) != 0) { // INTEGER | FLOAT
+			const char* pNumberStart = parseHead;
+
+			delta_TBool bFloat = dfalse;
+			for (GetNextChar(&parseHead); *parseHead != '\0'; GetNextChar(&parseHead)) {
+				if (*parseHead == '.') {
+					if (bFloat == dtrue)
+						return PARSE_FLOAT_DOT_AGAIN;
+					else
+						bFloat = dtrue;
+				}
+				else if (isdigit(*parseHead) == 0)
+					break;
+			}
+
+			if (bFloat == dtrue) { // FLOAT
+				L->type = LEXEM_FLOAT;
+				L->floatValue = (float)atof(pNumberStart);
+			}
+			else { // INTEGER
+				L->type = LEXEM_INTEGER;
+				L->integerValue = (long)atol(pNumberStart);
+			}
+			
+			return PARSE_OK;
+		}
+		else if (ispunct(*parseHead) != 0) { // STRING | KEYSYMBOL
+			if (*parseHead == '"') { // STRING
+				GetNextChar(&parseHead);
+
+				L->type = LEXEM_STRING;
+				L->string.offset = L->head - L->buffer;
+				L->string.size = 0;
+
+				for (; *parseHead != '\0'; GetNextChar(&parseHead)) {
+					if ((*parseHead == '"') && (*(parseHead - 1) != '\\'))
+						break;
+					else
+						++(L->string.size);
+				}
+
+				if (*parseHead == '\0')
+					return PARSE_UNEXPECTED_NULL_TERMINAL;
+
+				GetNextChar(&parseHead);
+			}
+			else { // KEYSYMBOL;
+				L->type = LEXEM_SYMBOL;
+				L->symbol = *parseHead;
+				GetNextChar(&parseHead);
+			}
+			
+			return PARSE_OK;
+		}
+		else if (isalpha(*parseHead) != 0) { // OP | NAME
+			size_t index;
+			for (index = 0; index < DELTA_OP_TABLE_SIZE; ++index) { // OP
+				const size_t size = delta_Strlen(op_table[index]);
+				const size_t cmp = delta_Strncmp(parseHead, op_table[index], size);
+				if (cmp < 0)
+					break;
+
+				if (cmp == 0) { // OP
+					L->op = index + 1;
+
+					L->type = LEXEM_OP;
+					L->head += size;
+
+					return PARSE_OK;
+				}
+			}
+
+			// NAME
+			L->type = LEXEM_NAME;
+			L->string.offset = L->head - L->buffer;
+			L->string.size = 0;
+
+			for (; *parseHead != '\0'; GetNextChar(&parseHead)) {
+				if ((isalpha(*parseHead) == 0) && (*parseHead != '_'))
+					break;
+				else
+					++(L->string.size);
+			}
+
+			if (*parseHead == '\0')
+				return PARSE_UNEXPECTED_NULL_TERMINAL;
+			
+			return PARSE_OK;
+		}
+		else
+			GetNextChar(&parseHead);
 	}
 
-	if (*strB == '\0')
-		return dtrue;
-	
-	return dfalse;
+	L->type = LEXEM_EOL;
+
+	return PARSE_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * GetNextChar
+ */
+inline delta_TChar GetNextChar(const delta_TChar** str) {
+	if (*(*str) != '\0')
+		++(*str);
+
+	return *(*str);
 }

@@ -11,6 +11,7 @@
 
 #include "deltabasic.h"
 #include "dstate.h"
+#include "dlimits.h"
 
 					//										//										//
 
@@ -18,6 +19,7 @@ typedef struct delta_SBytecode {
 	size_t			bytecodeSize;
 	size_t			index;
 	delta_TByte*	bytecode;
+	delta_TBool		bCanResize;
 } delta_SBytecode;
 
 /* ====================================
