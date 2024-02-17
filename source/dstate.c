@@ -18,13 +18,6 @@
 // ------------------------------------------------------------------------- //
 
 /* ====================================
- * ReplaceNode
- */
-static void ReplaceNode(delta_SLine* oldLine, delta_SLine* newLine);
-
-// ------------------------------------------------------------------------- //
-
-/* ====================================
  * delta_InsertLine
  */
 delta_TBool delta_InsertLine(delta_SState* D, size_t lineNumber, const delta_TChar str[], size_t strSize) {
@@ -145,4 +138,45 @@ void delta_RemoveLine(delta_SState* D, size_t line) {
  */
 inline void delta_FreeNode(delta_SState* D, delta_SLine* line) {
 	DELTA_Free(D, line, sizeof(delta_SLine) + (delta_Strlen(line->str) + 1));
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddNumericVariable
+ */
+delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, uint16_t offset, uint16_t size) {
+	if (D == NULL)
+		return NULL;
+
+	const delta_TChar* str = D->currentLine->str + offset;
+
+	delta_SNumericVariable* var = D->numericValiables;
+	while (var != NULL) {
+		if (delta_Strncmp(var->name, str, size) == 0)
+			return var;
+
+		var = var->next;
+	}
+
+	const size_t blockSize = sizeof(delta_SNumericVariable) + sizeof(delta_TChar) * (size + 1);
+	var = (delta_SNumericVariable*)DELTA_Alloc(D, blockSize);
+	if (var == NULL)
+		return NULL;
+
+	memset(var, 0x00, blockSize);
+	var->name = ((delta_TByte*)var) + sizeof(delta_SNumericVariable);
+	memcpy(var->name, str, size);
+
+	var->next = D->numericValiables;
+	D->numericValiables = var;
+
+	return var;
+}
+
+/* ====================================
+ * delta_FreeNumericVariable
+ */
+void delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* variable) {
+	DELTA_Free(D, variable, sizeof(delta_SNumericVariable) + (delta_Strlen(variable->name) + 1));
 }

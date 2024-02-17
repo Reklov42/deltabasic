@@ -31,12 +31,15 @@ typedef struct delta_SLine {
 	struct delta_SLine* next;
 } delta_SLine;
 
+/* ====================================
+ * delta_SNumericVariable
+ */
+typedef struct delta_SNumericVariable {
+	delta_TChar*	name; // Allocated at the end of the struct
+	delta_TNumber	value;
 
-typedef struct delta_SForState {
-	delta_SLine*	startLine;
-	delta_TByte		offset;
-
-} delta_SForState;
+	struct delta_SNumericVariable* next;
+} delta_SNumericVariable;
 
 /* ====================================
  * delta_SState
@@ -48,9 +51,14 @@ struct delta_SState {
 	delta_TPrintFunction	printFunction;
 
 	size_t					ip; // Instruction Pointer
-	delta_SLine*			currentLine;
+	delta_SLine*			currentLine; // If NULL, do nothing (program ENDed)
 
 	delta_SLine*			execLine;
+
+	delta_SNumericVariable*	numericValiables;
+
+	size_t					numericHead;
+	delta_TNumber			numericStack[DELTABASIC_NUMERIC_STACK_SIZE];
 
 	size_t					bytecodeSize;
 	delta_TByte*			bytecode;
@@ -60,6 +68,8 @@ struct delta_SState {
 	delta_SLine*			head;
 	delta_SLine*			tail;
 };
+
+// ------------------------------------------------------------------------- //
 
 /* ====================================
  * delta_InsertLine
@@ -79,5 +89,21 @@ void				delta_RemoveLine(delta_SState* D, size_t line);
  * Only free the node. Doesn't fix the list
  */
 void				delta_FreeNode(delta_SState* D, delta_SLine* line);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddNumericVariable
+ * 
+ * strSize - size of string with a null-terminal
+ */
+delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, uint16_t offset, uint16_t size);
+
+/* ====================================
+ * delta_FreeNumericVariable
+ *
+ * Only free the variable. Doesn't fix the list
+ */
+void				delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* variable);
 
 #endif /* !__DELTABASIC_STATE_H__ */

@@ -30,7 +30,11 @@ typedef enum {
 	DELTA_STATE_IS_NULL,
 	DELTA_STRING_IS_NULL,
 	DELTA_ALLOCATOR_ERROR,
-	DELTA_SYNTAX_ERROR
+	DELTA_SYNTAX_ERROR,
+
+	DELTA_MACHINE_UNKNOWN_OPCODE,
+	DELTA_MACHINE_NUMERIC_STACK_OVERFLOW,
+	DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW,
 } delta_EStatus;
 
 /* ====================================
@@ -73,7 +77,7 @@ int					delta_GotoLine(delta_SState* D, size_t line);
 /* ====================================
  * delta_New
  *
- * Delete all lines and clear bytecode buffer
+ * Delete all lines, variables and clear bytecode buffer
  */
 void				delta_New(delta_SState* D);
 
@@ -97,7 +101,7 @@ delta_EStatus		delta_Execute(delta_SState* D, const char str[]);
  * Interpret nInstructions VM's instructions
  * If N set to zero, interpret all code
  */
-delta_EStatus		delta_Interpret(size_t nInstructions);
+delta_EStatus		delta_Interpret(delta_SState* D, size_t nInstructions);
 
 // ------------------------------------------------------------------------- //
 //
@@ -112,6 +116,11 @@ typedef size_t (*delta_TReadFunction)(void* pData, size_t size, size_t count);
  * delta_Load
  */
 delta_EStatus		delta_Load(delta_SState* D, delta_TReadFunction readFunc);
+
+/* ====================================
+ * delta_LoadString
+ */
+delta_EStatus		delta_LoadString(delta_SState* D, const delta_TChar str[]);
 
 // ------------------------------------------------------------------------- //
 //

@@ -14,7 +14,7 @@
 #include "dmemory.h"
 #include "dopcodes.h"
 
-#define CompileLineParseAssert() { if (delta_Parse(&lexem) != PARSE_OK) return DELTA_SYNTAX_ERROR; }
+#define CompileInstructionParseAssert() { if (delta_Parse(L) != PARSE_OK) return DELTA_SYNTAX_ERROR; }
 #define ParseAssert() { if (delta_Parse(L) != PARSE_OK) return DELTA_SYNTAX_ERROR; }
 #define StatusAssert(exp) { delta_EStatus status = (exp); if (status != DELTA_OK) { return status; }}
 #define PushAssert(exp) { if ((exp) == dfalse) { return DELTA_ALLOCATOR_ERROR; }}
@@ -58,9 +58,14 @@ static delta_TBool IsMathSymbol(delta_TChar ch);
 /* ====================================
  * GetMathPriority
  */
-static size_t GetMathPriority(delta_TChar ch);
+static size_t GetMathPriority(delta_EOpcodes op);
 
 // ------------------------------------------------------------------------- //
+
+/* ====================================
+ * CompileInstruction
+ */
+static delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC);
 
 /* ====================================
  * CompileNumericMath
@@ -70,7 +75,12 @@ static delta_EStatus CompileNumericMath(delta_SState* D, delta_SLexerState* L, d
 /* ====================================
  * CollapseNumericMath
  */
-static delta_EStatus CollapseNumericMath(delta_SState* D, delta_TChar* ops, size_t* nOps, delta_SBytecode* BC);
+static delta_EStatus CollapseNumericMath(delta_SState* D, delta_EOpcodes* ops, size_t* nOps, delta_SBytecode* BC);
+
+/* ====================================
+ * CompileStringMath
+ */
+static delta_EStatus CompileStringMath(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC);
 
 // ------------------------------------------------------------------------- //
 
@@ -107,66 +117,113 @@ delta_EStatus delta_Compile(delta_SState* D) {
 	return DELTA_OK;
 }
 
-#include <stdio.h>
-
 /* ====================================
  * delta_CompileLine
  */
 delta_EStatus delta_CompileLine(delta_SState* D, delta_SLine* L, delta_SBytecode* BC) {
 	L->offset = BC->index;
 
-	const char* str = L->str;
-
-
 	delta_SLexerState lexem = { 0 };
 	lexem.buffer = L->str;
-	
-	CompileLineParseAssert();
-	if (lexem.type == LEXEM_OP) {
-		if (lexem.op == OP_LET) {
-			CompileLineParseAssert();
-			if (lexem.type != LEXEM_NAME)
+
+	while (lexem.type != LEXEM_EOL) {
+		if (delta_Parse(&lexem) != PARSE_OK)
+			return DELTA_SYNTAX_ERROR;
+
+		delta_EStatus status = CompileInstruction(D, &lexem, BC);
+		if (status != DELTA_OK)
+			return status;
+
+		if (lexem.type == LEXEM_SYMBOL) {
+			if (lexem.symbol != ':')
+				return DELTA_SYNTAX_ERROR;
+		}
+	}
+
+	PushAssert(PushBytecodeByte(D, BC, OPCODE_NEXTL));
+	return DELTA_OK;
+}
+
+/* ====================================
+ * CompileNumericMath
+ */
+delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC) {
+	if (L->type == LEXEM_OP) {
+		if (L->op == OP_LET) {
+			CompileInstructionParseAssert();
+			if (L->type != LEXEM_NAME)
 				return DELTA_SYNTAX_ERROR;
 
-			delta_SLexemString name = lexem.string;
-			CompileLineParseAssert();
+			delta_SLexemString name = L->string;
+			CompileInstructionParseAssert();
 
-			if (lexem.type != LEXEM_SYMBOL)
+			if (L->type != LEXEM_SYMBOL)
 				return DELTA_SYNTAX_ERROR;
 
-			if (lexem.symbol == '$') { // String
-				CompileLineParseAssert();
+			if (L->symbol == '$') { // String
+				CompileInstructionParseAssert();
 
-				if (lexem.type != LEXEM_SYMBOL)
+				if (L->type != LEXEM_SYMBOL)
 					return DELTA_SYNTAX_ERROR;
 
-				if (lexem.symbol == '=') { // Assignment
-
-				}
-				else if (lexem.symbol == '(') { // TODO: function
+				if (L->symbol == '=') { // String Assignment
 
 				}
 				else
 					return DELTA_SYNTAX_ERROR;
 			}
-			else if (lexem.symbol == '=') { // Assignment
-				StatusAssert(CompileNumericMath(D, &lexem, BC));
+			else if (L->symbol == '=') { // Numeric Assignment
+				StatusAssert(CompileNumericMath(D, L, BC));
 
 				PushAssert(PushBytecodeByte(D, BC, OPCODE_SETN));
 				PushAssert(PushBytecodeWord(D, BC, name.offset));
 				PushAssert(PushBytecodeWord(D, BC, name.size));
 			}
-			else if (lexem.symbol == '(') { // TODO: function
-
-			}
 			else
 				return DELTA_SYNTAX_ERROR;
 		}
+		else if (L->op == OP_PRINT) {
+			while (dtrue) {
+				const delta_TChar* head = L->head;
+				delta_EStatus status = CompileNumericMath(D, L, BC);
+				if (status == DELTA_ALLOCATOR_ERROR)
+					return DELTA_ALLOCATOR_ERROR;
+
+				if (status == DELTA_OK) {
+					if (L->type == LEXEM_EOL) {
+						PushAssert(PushBytecodeByte(D, BC, OPCODE_PRINTNT));
+						PushAssert(PushBytecodeByte(D, BC, OPCODE_PRINTLN));
+						break;
+					} else if (L->type == LEXEM_SYMBOL) {
+						if (L->symbol == ',') {
+							PushAssert(PushBytecodeByte(D, BC, OPCODE_PRINTNT));
+						} else if (L->symbol == ';') {
+							PushAssert(PushBytecodeByte(D, BC, OPCODE_PRINTN));
+						} else if (L->symbol == ':') {
+							PushAssert(PushBytecodeByte(D, BC, OPCODE_PRINTNT));
+							PushAssert(PushBytecodeByte(D, BC, OPCODE_PRINTLN));
+							break;
+						} else
+							return DELTA_SYNTAX_ERROR;
+					}
+				}
+				else {
+					L->head = head;
+				}
+			}
+		}
+		else if (L->op == OP_END) {
+			PushAssert(PushBytecodeByte(D, BC, OPCODE_HLT));
+		}
+		else
+			return DELTA_SYNTAX_ERROR;
 	}
-	else if (lexem.type == LEXEM_NAME) {
-		delta_SLexemString name = lexem.string;
+	else if (L->type == LEXEM_NAME) {
+		delta_SLexemString name = L->string;
 
 	}
+	else
+		return DELTA_SYNTAX_ERROR;
 
 	return DELTA_OK;
 }
@@ -177,7 +234,7 @@ delta_EStatus delta_CompileLine(delta_SState* D, delta_SLine* L, delta_SBytecode
  * CompileNumericMath
  */
 delta_EStatus CompileNumericMath(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC) {
-	delta_TChar ops[DELTABASIC_COMPILER_MAX_MATH_OPS];
+	delta_EOpcodes ops[DELTABASIC_COMPILER_MAX_MATH_OPS];
 	size_t nOps = 0;
 
 	delta_TBool bUnaryMinus = dfalse;
@@ -200,16 +257,51 @@ delta_EStatus CompileNumericMath(delta_SState* D, delta_SLexerState* L, delta_SB
 
 					return DELTA_SYNTAX_ERROR;
 				}
+
+				delta_EOpcodes opcode;
+				switch (symbol) {
+					case '+': opcode = OPCODE_ADD; break;
+					case '-': opcode = OPCODE_SUB; break;
+					case '*': opcode = OPCODE_MUL; break;
+					case '/': opcode = OPCODE_DIV; break;
+					case '^': opcode = OPCODE_POW; break;
+					case '%': opcode = OPCODE_MOD; break;
+					case '=': opcode = OPCODE_ET;  break;
+					default:
+						if ((symbol == '<') || (symbol == '>')) {
+							ParseAssert();
+							if (L->type != LEXEM_SYMBOL) {
+								if (symbol == '<') opcode = OPCODE_LT;
+								else if (symbol == '>') opcode = OPCODE_GT;
+							}
+							else {
+								if ((symbol == '<') && (L->symbol == '>')) opcode = OPCODE_NET;
+								else if ((symbol == '<') && (L->symbol == '=')) opcode = OPCODE_LET;
+								else if ((symbol == '>') && (L->symbol == '=')) opcode = OPCODE_GET;
+								else if (L->symbol == '-') {
+									bUnaryMinus = dtrue;
+									ParseAssert();
+								}
+							}
+						}
+				};
 				
 				if (nOps != 0) { // Pop operations
-					if (GetMathPriority(symbol) < GetMathPriority(ops[nOps - 1])) {
+					if (GetMathPriority(opcode) < GetMathPriority(ops[nOps - 1])) {
 						StatusAssert(CollapseNumericMath(D, ops, &nOps, BC));
 					}
 				}
 
-				ops[nOps++] = symbol;
+				if (nOps >= DELTABASIC_COMPILER_MAX_MATH_OPS)
+					return DELTA_ALLOCATOR_ERROR;
+
+				ops[nOps++] = opcode;
 			}
-			else if (symbol == '(') {
+			
+			if (symbol == '(') {
+				if (nOps >= DELTABASIC_COMPILER_MAX_MATH_OPS)
+					return DELTA_ALLOCATOR_ERROR;
+					
 				ops[nOps++] = '(';
 			}
 			else if (symbol == ')') {
@@ -220,13 +312,12 @@ delta_EStatus CompileNumericMath(delta_SState* D, delta_SLexerState* L, delta_SB
 				//lastLexemType = (nVariables != 0) ? ELexemType::INTEGER : ELexemType::KEYSYMBOL;
 				continue;
 			}
-			else if ((symbol == ':') || (symbol == ',')) {
+			else if ((symbol == ':') || (symbol == ',') || (symbol == ';')) {
 				break;
 			}
-			else
-				return DELTA_SYNTAX_ERROR;
 		}
-		else if ((L->type == LEXEM_INTEGER) || (L->type == LEXEM_FLOAT)) {
+		
+		if ((L->type == LEXEM_INTEGER) || (L->type == LEXEM_FLOAT)) {
 			delta_TNumber number = (L->type == LEXEM_INTEGER) ? (delta_TNumber)(L->integerValue) : (delta_TNumber)(L->floatValue);
 			if (bUnaryMinus == dtrue)
 				number = -number;
@@ -240,7 +331,15 @@ delta_EStatus CompileNumericMath(delta_SState* D, delta_SLexerState* L, delta_SB
 		else if (L->type == LEXEM_STRING) {
 			return DELTA_SYNTAX_ERROR;
 		}
-		else if (L->type == LEXEM_NAME) { // TODO:
+		else if (L->type == LEXEM_NAME) { // TODO: functions
+			PushAssert(PushBytecodeByte(D, BC, OPCODE_GETN));
+			PushAssert(PushBytecodeWord(D, BC, L->string.offset));
+			PushAssert(PushBytecodeWord(D, BC, L->string.size));
+
+			if (bUnaryMinus == dtrue)
+				PushAssert(PushBytecodeByte(D, BC, OPCODE_NEG));
+			
+			bUnaryMinus = dfalse;
 		}
 		else if (L->type == LEXEM_EOL) {
 			break;
@@ -268,37 +367,24 @@ delta_EStatus CompileNumericMath(delta_SState* D, delta_SLexerState* L, delta_SB
 /* ====================================
  * CompileNumericMath
  */
-delta_EStatus CollapseNumericMath(delta_SState* D, delta_TChar* ops, size_t* nOps, delta_SBytecode* BC) {
+delta_EStatus CollapseNumericMath(delta_SState* D, delta_EOpcodes* ops, size_t* nOps, delta_SBytecode* BC) {
 	while (*nOps != 0) {
-		const delta_TChar symbolOnTop = ops[*nOps - 1];
+		const delta_EOpcodes opcodeOnTop = ops[*nOps - 1];
 		--(*nOps);
-		if (symbolOnTop == '(')
+		if (opcodeOnTop == '(')
 			break;
 
-		delta_EOpcodes opcode;
-		switch (symbolOnTop) {
-			case '+': opcode = OPCODE_ADD; break;
-			case '-': opcode = OPCODE_SUB; break;
-			case '*': opcode = OPCODE_MUL; break;
-			case '/': opcode = OPCODE_DIV; break;
-			case '^': opcode = OPCODE_POW; break;
-			case '%': opcode = OPCODE_MOD; break;
-
-		/*
-			case EKeysymbol::EQUAL:					EmplaceOp(EOpCode::ET);		break;
-			case EKeysymbol::NOT_EQUAL:				EmplaceOp(EOpCode::NET);	break;
-			case EKeysymbol::LESS_THAN:				EmplaceOp(EOpCode::LT);		break;
-			case EKeysymbol::GREATER_THAN:			EmplaceOp(EOpCode::GT);		break;
-			case EKeysymbol::LESS_THAN_OR_EQUAL:	EmplaceOp(EOpCode::LET);	break;
-			case EKeysymbol::GREATER_THAN_OR_EQUAL:	EmplaceOp(EOpCode::GET);	break;
-		*/
-			default:
-				return DELTA_SYNTAX_ERROR;
-		}
-
-		PushAssert(PushBytecodeByte(D, BC, opcode));
+		PushAssert(PushBytecodeByte(D, BC, opcodeOnTop));
 	}
 
+	return DELTA_OK;
+}
+
+
+/* ====================================
+ * CompileNumericMath
+ */
+delta_EStatus CompileStringMath(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC) {
 	return DELTA_OK;
 }
 
@@ -392,21 +478,35 @@ inline delta_TBool IsMathSymbol(delta_TChar ch) {
 	if (ch == '^') return dtrue;
 	if (ch == '%') return dtrue;
 
+	if (ch == '=') return dtrue;
+	if (ch == '<') return dtrue;
+	if (ch == '>') return dtrue;
+
 	return dfalse;
 }
 
 /* ====================================
  * GetMathPriority
  */
-inline size_t GetMathPriority(delta_TChar ch) {
-	if (ch == '+') return 1;
-	if (ch == '-') return 1;
-
-	if (ch == '*') return 2;
-	if (ch == '/') return 2;
-
-	if (ch == '^') return 4;
-	if (ch == '%') return 3;
-
-	return 0;
+inline size_t GetMathPriority(delta_EOpcodes op) {
+	switch (op) {
+		case OPCODE_ET:
+		case OPCODE_NET:
+		case OPCODE_LT:
+		case OPCODE_GT:
+		case OPCODE_LET:
+		case OPCODE_GET:
+			return 1;
+		case OPCODE_ADD:
+		case OPCODE_SUB:
+			return 2;
+		case OPCODE_MUL:
+		case OPCODE_DIV:
+			return 3;
+		case OPCODE_MOD:
+		case OPCODE_POW:
+			return 4;
+		default:
+			return 0;
+	}
 }

@@ -64,6 +64,9 @@ const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
 	while (isdigit(*str) != 0)
 		++str;
 
+	while (*str == ' ')
+		++str;
+
 	return str;
 }
 

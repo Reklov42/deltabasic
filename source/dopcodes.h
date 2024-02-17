@@ -28,9 +28,25 @@ typedef enum {
 	OPCODE_DIV,
 	OPCODE_MOD,
 	OPCODE_POW,
-	OPCODE_SETN,	// Set Numeric Varialbe 1, 1 (offset, size)
-	OPCODE_SETS,	// Set String Varialbe  1, 1 (offset, size)
+	OPCODE_SETN,	// Set Numeric Varialbe 2, 2 (offset, size)
+	OPCODE_SETS,	// Set String Varialbe  2, 2 (offset, size)
 	OPCODE_JMP,		// 4 (line)
+	OPCODE_PRINTN,	// Print Numeric
+	OPCODE_PRINTNT, // Print Numeric with Tabs
+	OPCODE_PRINTS,
+	OPCODE_PRINTSN,
+	OPCODE_PRINTLN, // Print New Line
+	OPCODE_GETN,
+	OPCODE_GETS,
+	OPCODE_ET,		// Equal To
+	OPCODE_NET,		// Not Equal To
+	OPCODE_LT,		// Less Than
+	OPCODE_GT,		// Greater Than
+	OPCODE_LET,		// Less or Equal To
+	OPCODE_GET,		// Greater or Equal To
+	OPCODE_NEG,		//
+	OPCODE_COUNT,
+	OPCODE_LAST = OPCODE_NEG,
 } delta_EOpcodes;
 
 #endif /* !__DELTABASIC_OPCODES_H__ */

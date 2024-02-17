@@ -17,6 +17,7 @@
 #include "dlexer.h"
 #include "dmemory.h"
 #include "dcompiler.h"
+#include "dmachine.h"
 
 #define CreateStateAssert(exp)	if (exp) { delta_ReleaseState(D); return NULL; }
 
@@ -67,6 +68,49 @@ int delta_Print(const delta_TChar str[], size_t size);
  * main
  */
 int main(int argc, char* argv[]) {
+	if (argc == 2) {
+		char* code = LoadFile(argv[1]);
+		if (code == NULL) {
+			printf("can't open file: \"%s\". Abort\n", argv[1]);
+			return -1;
+		}
+
+		delta_SState* D = delta_CreateState(Allocator, NULL);
+		if (delta_LoadString(D, code) != DELTA_OK) {
+			printf("can't load code. Abort\n");
+			delta_ReleaseState(D);
+			free(code);
+
+			return -1;
+		}
+		
+		free(code);
+
+		if (delta_Compile(D) != DELTA_OK) {
+			printf("can't compile code. Abort\n");
+			delta_ReleaseState(D);
+
+			return -1;
+		}
+
+		delta_EStatus status = delta_Interpret(D, 0);
+		if (status != DELTA_OK) {
+			delta_ReleaseState(D);
+			if (status == DELTA_END)
+				return 0;
+
+			if (status == DELTA_ALLOCATOR_ERROR)
+				printf("DELTA_ALLOCATOR_ERROR\n");
+
+			if (status == DELTA_SYNTAX_ERROR)
+				printf("DELTA_SYNTAX_ERROR\n");
+
+			return -1;
+		}
+
+		return 0;
+	}
+
 	char* code = LoadFile("test.bas");
 	if (code == NULL)
 		return -1;
@@ -79,6 +123,8 @@ int main(int argc, char* argv[]) {
 	//delta_CompileSource(D, code);
 	PrintUsedMemory();
 
+	printf("%.2i|\n", 123);
+	printf("%+-11f|\n", 0.123);
 
 	char buffer[256];
 	while (1) {
@@ -101,12 +147,13 @@ int main(int argc, char* argv[]) {
 			if (status == DELTA_SYNTAX_ERROR)
 				printf("DELTA_SYNTAX_ERROR\n");
 		}
-		
+
+		/*
 		for (size_t i = 0; i < DELTABASIC_EXEC_BYTECODE_SIZE; ++i) {
 			printf("%02X ", D->bytecode[i]);
 			if (i % 16 == 15)
 				printf("\n");
-		}
+		}*/
 	}
 
 	delta_ReleaseState(D);
@@ -213,6 +260,17 @@ void delta_ReleaseState(delta_SState* D) {
 			line = next; 
 		}
 	}
+
+	{
+		delta_SNumericVariable* nvar = D->numericValiables;
+		while (nvar != NULL) {
+			delta_SNumericVariable* next = nvar->next;
+
+			delta_FreeNumericVariable(D, nvar);
+
+			nvar = nvar; 
+		}
+	}
 	
 	allocFunc(D, sizeof(delta_SState), 0, userData);
 }
@@ -239,7 +297,7 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 	while ((*end == ' ') && (execStr < end))
 		--end;
 	
-	const size_t size = execStr - end;
+	size_t size = execStr - end;
 
 	delta_TInteger lineNumber = 0;
 	const char* str = delta_ReadInteger(execStr, &lineNumber);
@@ -250,7 +308,7 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 		bc.bytecode		= D->bytecode;
 		bc.bCanResize	= dfalse;
 
-		memset(bc.bytecode, 0xFF, DELTABASIC_EXEC_BYTECODE_SIZE);
+		memset(bc.bytecode, 0x00, DELTABASIC_EXEC_BYTECODE_SIZE);
 
 		memcpy(D->execLine->str, execStr, DELTABASIC_MIN(size, DELTABASIC_EXEC_STRING_SIZE));
 
@@ -260,8 +318,12 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 
 		D->currentLine = D->execLine;
 		D->ip = 0;
+
+		while(delta_ExecuteInstruction(D) == DELTA_OK);
 	}
 	else {
+		size = str - end;
+
 		D->bCompiled = dfalse;
 		if (size == 0)
 			delta_RemoveLine(D, lineNumber);
@@ -274,6 +336,68 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 	return DELTA_OK;
 }
 
+/* ====================================
+ * delta_Interpret
+ */
+delta_EStatus delta_Interpret(delta_SState* D, size_t nInstructions) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (nInstructions == 0)
+		nInstructions = SIZE_MAX;
+	
+	for (size_t i = 0; i < nInstructions; ++i) {
+		delta_EStatus status = delta_ExecuteInstruction(D);
+		if (status != DELTA_OK)
+			return status;
+	}
+
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_SetPrintFunction
+ */
+delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (str == NULL)
+		return DELTA_STRING_IS_NULL;
+
+	const delta_TChar* start = str;
+	while (*str != '\0') {
+		if (*str == '\n') {
+			while (*start == ' ')
+				++start;
+
+			const delta_TChar* end = str;
+			while ((*end == ' ') && (start < end))
+				--end;
+
+			delta_TInteger lineNumber = 0;
+			const char* start = delta_ReadInteger(start, &lineNumber);
+			if (start != NULL) { // TODO: if (start == NULL)
+				const size_t size = start - end;
+
+				if (size == 0)
+					delta_RemoveLine(D, lineNumber);
+				else {
+					if (delta_InsertLine(D, lineNumber, str, size) == dfalse)
+						return DELTA_ALLOCATOR_ERROR;
+				}
+			}
+
+			start = str + 1;
+		}
+
+		++str;
+	}
+
+	return DELTA_OK;
+}
 
 // ------------------------------------------------------------------------- //
 
