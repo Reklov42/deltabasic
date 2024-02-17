@@ -28,6 +28,8 @@ delta_EStatus MachineHalt(delta_SState* D);
  */
 delta_EStatus MachineNextLine(delta_SState* D);
 
+// ------------------------------------------------------------------------- //
+
 /* ====================================
  * MachinePushNumeric
  */
@@ -37,6 +39,28 @@ delta_EStatus MachinePushNumeric(delta_SState* D);
  * MachineSetNumeric
  */
 delta_EStatus MachineSetNumeric(delta_SState* D);
+
+/* ====================================
+ * MachineGetNumeric
+ */
+delta_EStatus MachineGetNumeric(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachinePushString
+ */
+delta_EStatus MachinePushString(delta_SState* D);
+
+/* ====================================
+ * MachineSetNumeric
+ */
+delta_EStatus MachineSetString(delta_SState* D);
+
+/* ====================================
+ * MachineGetString
+ */
+delta_EStatus MachineGetString(delta_SState* D);
 
 // ------------------------------------------------------------------------- //
 
@@ -86,11 +110,6 @@ delta_EStatus MachinePrintNumericT(delta_SState* D);
  * MachinePrintNewLine
  */
 delta_EStatus MachinePrintNewLine(delta_SState* D);
-
-/* ====================================
- * MachineGetNumeric
- */
-delta_EStatus MachineGetNumeric(delta_SState* D);
 
 // ------------------------------------------------------------------------- //
 
@@ -151,7 +170,7 @@ typedef delta_EStatus(*TMachineFunction)(delta_SState* D);
 static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineHalt,
 	MachineNextLine,
-	OPCODE_PUSHS,
+	MachinePushString,
 	MachinePushNumeric,
 	OPCODE_CONCAT,
 	MachineAdd,
@@ -161,7 +180,7 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineMod,
 	MachinePow,
 	MachineSetNumeric,
-	OPCODE_SETS,
+	MachineSetString,
 	OPCODE_JMP,
 	MachinePrintNumeric,
 	MachinePrintNumericT,
@@ -169,7 +188,7 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	OPCODE_PRINTSN,
 	MachinePrintNewLine,
 	MachineGetNumeric,
-	OPCODE_GETS,
+	MachineGetString,
 	MachineEqualTo,
 	MachineNotEqualTo,
 	MachineLessThan,
@@ -422,6 +441,41 @@ delta_EStatus MachineGetNumeric(delta_SState* D) {
 	D->ip += 4;
 	return DELTA_OK;
 }
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachinePushString
+ */
+delta_EStatus MachinePushString(delta_SState* D) {
+	if (D->stringHead + 1 == DELTABASIC_STRING_STACK_SIZE)
+		return DELTA_MACHINE_STRING_STACK_OVERFLOW;
+
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+	delta_TChar* str = (delta_TChar)DELTA_Alloc(D, sizeof(delta_TChar) * size + 1);
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memcpy(str, D->execLine->str + offset, sizeof(delta_TChar) * size);
+	str[size] = '\0';
+
+	D->stringStack[(D->stringHead)++] = str;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineSetNumeric
+ */
+delta_EStatus MachineSetString(delta_SState* D);
+
+/* ====================================
+ * MachineGetString
+ */
+delta_EStatus MachineGetString(delta_SState* D);
 
 // ------------------------------------------------------------------------- //
 

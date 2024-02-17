@@ -137,7 +137,7 @@ void delta_RemoveLine(delta_SState* D, size_t line) {
  * delta_FreeNode
  */
 inline void delta_FreeNode(delta_SState* D, delta_SLine* line) {
-	DELTA_Free(D, line, sizeof(delta_SLine) + (delta_Strlen(line->str) + 1));
+	DELTA_Free(D, line, sizeof(delta_SLine) + (delta_Strlen(line->str) + 1) * sizeof(delta_TChar));
 }
 
 // ------------------------------------------------------------------------- //
@@ -178,5 +178,61 @@ delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, uint16_t
  * delta_FreeNumericVariable
  */
 void delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* variable) {
-	DELTA_Free(D, variable, sizeof(delta_SNumericVariable) + (delta_Strlen(variable->name) + 1));
+	DELTA_Free(D, variable, sizeof(delta_SNumericVariable) + (delta_Strlen(variable->name) + 1) * sizeof(delta_TChar));
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddStringVariable
+ */
+delta_SNumericVariable* delta_FindOrAddStringVariable(delta_SState* D, uint16_t offset, uint16_t size) {
+	if (D == NULL)
+		return NULL;
+
+	const delta_TChar* str = D->currentLine->str + offset;
+
+	delta_SStringVariable* var = D->stringVariables;
+	while (var != NULL) {
+		if (delta_Strncmp(var->name, str, size) == 0)
+			return var;
+
+		var = var->next;
+	}
+
+	const size_t blockSize = sizeof(delta_SStringVariable) + sizeof(delta_TChar) * (size + 1);
+	var = (delta_SStringVariable*)DELTA_Alloc(D, blockSize);
+	if (var == NULL)
+		return NULL;
+
+	memset(var, 0x00, blockSize);
+	var->name = ((delta_TByte*)var) + sizeof(delta_SStringVariable);
+	memcpy(var->name, str, size);
+
+	var->next = D->stringVariables;
+	D->stringVariables = var;
+
+	return var;
+}
+
+/* ====================================
+ * delta_FreeStringVariable
+ */
+void delta_FreeStringVariable(delta_SState *D, delta_SStringVariable *variable) {
+	if (variable->str != NULL) {
+		DELTA_Free(D, variable->str, (delta_Strlen(variable->str) + 1) * sizeof(delta_TChar));
+	}
+
+	DELTA_Free(D, variable, sizeof(delta_SStringVariable) + (delta_Strlen(variable->name) + 1) * sizeof(delta_TChar));
+}
+
+/* ====================================
+ * delta_FreeStringVariable
+ */
+void delta_FreeStringStack(delta_SState* D) {
+	for (size_t i = 0; i < D->stringHead; ++i) {
+		DELTA_Free(D, D->stringStack[i], (delta_Strlen(D->stringStack[i]) + 1) * sizeof(delta_TChar));
+	}
+
+	D->stringHead = 0;
 }

@@ -272,6 +272,17 @@ void delta_ReleaseState(delta_SState* D) {
 		}
 	}
 	
+	{
+		delta_SStringVariable* nvar = D->stringVariables;
+		while (nvar != NULL) {
+			delta_SStringVariable* next = nvar->next;
+
+			delta_FreeStringVariable(D, nvar);
+
+			nvar = nvar; 
+		}
+	}
+	
 	allocFunc(D, sizeof(delta_SState), 0, userData);
 }
 
@@ -297,7 +308,7 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 	while ((*end == ' ') && (execStr < end))
 		--end;
 	
-	size_t size = execStr - end;
+	size_t size = end - execStr;
 
 	delta_TInteger lineNumber = 0;
 	const char* str = delta_ReadInteger(execStr, &lineNumber);
@@ -322,7 +333,7 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 		while(delta_ExecuteInstruction(D) == DELTA_OK);
 	}
 	else {
-		size = str - end;
+		size = end - str;
 
 		D->bCompiled = dfalse;
 		if (size == 0)
@@ -380,7 +391,7 @@ delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
 			delta_TInteger lineNumber = 0;
 			const char* start = delta_ReadInteger(start, &lineNumber);
 			if (start != NULL) { // TODO: if (start == NULL)
-				const size_t size = start - end;
+				const size_t size = end - start;
 
 				if (size == 0)
 					delta_RemoveLine(D, lineNumber);
