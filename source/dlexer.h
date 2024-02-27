@@ -32,6 +32,8 @@ typedef enum {
 	OP_END,
 	OP_LET,
 	OP_PRINT,
+	OP_STOP,
+	OP_TAB,
 } delta_EOp;
 
 /* ====================================

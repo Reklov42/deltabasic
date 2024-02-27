@@ -111,7 +111,7 @@ void				delta_FreeNode(delta_SState* D, delta_SLine* line);
  * 
  * strSize - size of string with a null-terminal
  */
-delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, uint16_t offset, uint16_t size);
+delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, const delta_TChar str[], uint16_t size);
 
 /* ====================================
  * delta_FreeNumericVariable
@@ -127,7 +127,7 @@ void				delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* varia
  * 
  * strSize - size of string with a null-terminal
  */
-delta_SNumericVariable* delta_FindOrAddStringVariable(delta_SState* D, uint16_t offset, uint16_t size);
+delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delta_TChar str[], uint16_t size);
 
 /* ====================================
  * delta_FreeStringVariable

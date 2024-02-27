@@ -34,7 +34,7 @@ typedef enum {
 	OPCODE_PRINTN,	// Print Numeric
 	OPCODE_PRINTNT, // Print Numeric with Tabs
 	OPCODE_PRINTS,
-	OPCODE_PRINTSN,
+	OPCODE_PRINTST,
 	OPCODE_PRINTLN, // Print New Line
 	OPCODE_GETN,
 	OPCODE_GETS,
@@ -45,8 +45,10 @@ typedef enum {
 	OPCODE_LET,		// Less or Equal To
 	OPCODE_GET,		// Greater or Equal To
 	OPCODE_NEG,		//
+	OPCODE_STOP,
+	OPCODE_TAB,
 	OPCODE_COUNT,
-	OPCODE_LAST = OPCODE_NEG,
+	OPCODE_LAST = OPCODE_TAB,
 } delta_EOpcodes;
 
 #endif /* !__DELTABASIC_OPCODES_H__ */

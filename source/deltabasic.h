@@ -13,6 +13,9 @@
 
 #include "deltabasic_config.h"
 
+#define DELTABASIC_TYPE_NUMBER								0x01
+#define DELTABASIC_TYPE_STRING								0x02
+
 					//										//										//
 typedef DELTABASIC_CONFIG_NUMBER							delta_TNumber;
 typedef DELTABASIC_CONFIG_CHAR								delta_TChar;
@@ -37,6 +40,10 @@ typedef enum {
 	DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW,
 	DELTA_MACHINE_STRING_STACK_OVERFLOW,
 	DELTA_MACHINE_STRING_STACK_UNDERFLOW,
+	DELTA_MACHINE_NEGATIVE_ARGUMENT,
+	DELTA_MACHINE_STOP,
+	
+	DELTA_MATH_STATUS,
 } delta_EStatus;
 
 /* ====================================
@@ -74,19 +81,41 @@ void				delta_ReleaseState(delta_SState* D);
 /* ====================================
  * delta_GotoLine
  */
-int					delta_GotoLine(delta_SState* D, size_t line);
+delta_EStatus		delta_GotoLine(delta_SState* D, size_t line);
 
 /* ====================================
  * delta_New
  *
  * Delete all lines, variables and clear bytecode buffer
  */
-void				delta_New(delta_SState* D);
+delta_EStatus		delta_New(delta_SState* D);
 
 /* ====================================
  * delta_Break
  */
-void				delta_Break(delta_SState* D);
+delta_EStatus		delta_Break(delta_SState* D);
+
+/* ====================================
+ * delta_SetNumeric
+ */
+delta_EStatus		delta_SetNumeric(delta_SState* D, const char str[], delta_TNumber value);
+
+/* ====================================
+ * delta_GetNumeric
+ */
+delta_EStatus		delta_GetNumeric(delta_SState* D, const char str[], delta_TNumber* value);
+
+/* ====================================
+ * delta_SetString
+ */
+delta_EStatus		delta_SetString(delta_SState* D, const char str[], const char value[]);
+
+/* ====================================
+ * delta_GetString
+ *
+ * DO NOT save a pointer, just copy the data
+ */
+delta_EStatus		delta_GetString(delta_SState* D, const char str[], const char* value[]);
 
 // ------------------------------------------------------------------------- //
 //
@@ -136,6 +165,6 @@ typedef int (*delta_TPrintFunction)(const delta_TChar str[], size_t size);
 /* ====================================
  * delta_SetPrintFunction
  */
-int					delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func);
+delta_EStatus		delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func);
 
 #endif /* !__DELTABASIC_H__ */

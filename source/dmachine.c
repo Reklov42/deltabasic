@@ -14,6 +14,7 @@
 #include "dmemory.h"
 #include "dstate.h"
 #include "dopcodes.h"
+#include "dstring.h"
 					//										//										//
 
 // ------------------------------------------------------------------------- //
@@ -53,7 +54,7 @@ delta_EStatus MachineGetNumeric(delta_SState* D);
 delta_EStatus MachinePushString(delta_SState* D);
 
 /* ====================================
- * MachineSetNumeric
+ * MachineSetString
  */
 delta_EStatus MachineSetString(delta_SState* D);
 
@@ -63,6 +64,11 @@ delta_EStatus MachineSetString(delta_SState* D);
 delta_EStatus MachineGetString(delta_SState* D);
 
 // ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineConcat
+ */
+delta_EStatus MachineConcat(delta_SState* D);
 
 /* ====================================
  * MachineAdd
@@ -105,6 +111,16 @@ delta_EStatus MachinePrintNumeric(delta_SState* D);
  * MachinePrintNumericT
  */
 delta_EStatus MachinePrintNumericT(delta_SState* D);
+
+/* ====================================
+ * MachinePrintString
+ */
+delta_EStatus MachinePrintString(delta_SState* D);
+
+/* ====================================
+ * MachinePrintStringT
+ */
+delta_EStatus MachinePrintStringT(delta_SState* D);
 
 /* ====================================
  * MachinePrintNewLine
@@ -153,9 +169,26 @@ delta_EStatus MachineNeg(delta_SState* D);
 // ------------------------------------------------------------------------- //
 
 /* ====================================
+ * MachineStop
+ */
+delta_EStatus MachineStop(delta_SState* D);
+
+/* ====================================
+ * MachineTab
+ */
+delta_EStatus MachineTab(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
  * FormatNumeric
  */
 size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number);
+
+/* ====================================
+ * PrintTabs
+ */
+size_t PrintTabs(delta_SState* D, size_t size);
 
 // ------------------------------------------------------------------------- //
 
@@ -172,7 +205,7 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineNextLine,
 	MachinePushString,
 	MachinePushNumeric,
-	OPCODE_CONCAT,
+	MachineConcat,
 	MachineAdd,
 	MachineSub,
 	MachineMul,
@@ -184,8 +217,8 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	OPCODE_JMP,
 	MachinePrintNumeric,
 	MachinePrintNumericT,
-	OPCODE_PRINTS,
-	OPCODE_PRINTSN,
+	MachinePrintString,
+	MachinePrintStringT,
 	MachinePrintNewLine,
 	MachineGetNumeric,
 	MachineGetString,
@@ -196,6 +229,8 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineLessOrEqualTo,
 	MachineGreaterOrEqualTo,
 	MachineNeg,
+	MachineStop,
+	MachineTab,
 };
 
 // ------------------------------------------------------------------------- //
@@ -204,8 +239,10 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
  * delta_ExecuteInstruction
  */
 delta_EStatus delta_ExecuteInstruction(delta_SState* D) {
-	if (D->currentLine == NULL)
+	if (D->currentLine == NULL) {
+		delta_FreeStringStack(D);
 		return DELTA_END;
+	}
 
 	delta_TByte op = D->bytecode[D->ip];
 	if (op > OPCODE_LAST)
@@ -268,13 +305,67 @@ delta_EStatus MachineSetNumeric(delta_SState* D) {
 	if (D->numericHead == 0)
 		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
 
-	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, offset, size);
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, D->currentLine->str + offset, size);
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
 	var->value = D->numericStack[--(D->numericHead)];
 
 	D->ip += 4;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineGetNumeric
+ */
+delta_EStatus MachineGetNumeric(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead + 1 == DELTABASIC_NUMERIC_STACK_SIZE)
+		return DELTA_MACHINE_NUMERIC_STACK_OVERFLOW;
+
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	D->numericStack[(D->numericHead)++] = var->value;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineConcat
+ */
+delta_EStatus MachineConcat(delta_SState* D) {
+	if (D->stringHead < 2)
+		return DELTA_MACHINE_STRING_STACK_UNDERFLOW;
+
+	delta_TChar* strA = D->stringStack[D->stringHead - 2];
+	delta_TChar* strB = D->stringStack[D->stringHead - 1];
+	const size_t sizeA = delta_Strlen(strA);
+	const size_t sizeB = delta_Strlen(strB);
+	const size_t size = sizeA + sizeB;
+
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * size + 1);
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memcpy(str, strA, sizeA);
+	memcpy(str + sizeA, strB, sizeB);
+	str[size] = '\0';
+
+	DELTA_Free(D, strA, sizeof(delta_TChar) * (sizeA + 1));
+	DELTA_Free(D, strB, sizeof(delta_TChar) * (sizeB + 1));
+
+	--(D->stringHead);
+	D->stringStack[D->stringHead - 1] = str;
+
+	D->ip += 1;
 	return DELTA_OK;
 }
 
@@ -362,6 +453,8 @@ delta_EStatus MachinePow(delta_SState* D) {
 	return DELTA_OK;
 }
 
+// ------------------------------------------------------------------------- //
+
 /* ====================================
  * MachinePrintNumeric
  */
@@ -401,11 +494,47 @@ delta_EStatus MachinePrintNumericT(delta_SState* D) {
 		D->numericStack[D->numericHead]
 	);
 
-	for (size; size < DELTABASIC_PRINT_BUFFER_SIZE; ++size)
-		buffer[size] = ' ';
-
 	D->printFunction(buffer, size);
+	PrintTabs(D, size);
 
+	D->ip += 1;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachinePrintString
+ */
+delta_EStatus MachinePrintString(delta_SState* D) {
+	if (D->stringHead < 1)
+		return DELTA_MACHINE_STRING_STACK_UNDERFLOW;
+
+	--(D->stringHead);
+	delta_TChar* str = D->stringStack[D->stringHead];
+	size_t size = delta_Strlen(str);
+
+	D->printFunction(str, size);
+	DELTA_Free(D, str, sizeof(delta_TChar) * (size + 1));
+	
+	D->ip += 1;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachinePrintStringT
+ */
+delta_EStatus MachinePrintStringT(delta_SState* D) {
+	if (D->stringHead < 1)
+		return DELTA_MACHINE_STRING_STACK_UNDERFLOW;
+
+	--(D->stringHead);
+	delta_TChar* str = D->stringStack[D->stringHead];
+	size_t size = delta_Strlen(str);
+
+	D->printFunction(str, size);
+	DELTA_Free(D, str, sizeof(delta_TChar) * (size + 1));
+
+	PrintTabs(D, size);
+	
 	D->ip += 1;
 	return DELTA_OK;
 }
@@ -421,27 +550,6 @@ delta_EStatus MachinePrintNewLine(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
- * MachineGetNumeric
- */
-delta_EStatus MachineGetNumeric(delta_SState* D) {
-	D->ip += 1;
-	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
-	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
-
-	if (D->numericHead + 1 == DELTABASIC_NUMERIC_STACK_SIZE)
-		return DELTA_MACHINE_NUMERIC_STACK_OVERFLOW;
-
-	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, offset, size);
-	if (var == NULL)
-		return DELTA_ALLOCATOR_ERROR;
-
-	D->numericStack[(D->numericHead)++] = var->value;
-
-	D->ip += 4;
-	return DELTA_OK;
-}
-
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -454,11 +562,11 @@ delta_EStatus MachinePushString(delta_SState* D) {
 	D->ip += 1;
 	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
 	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
-	delta_TChar* str = (delta_TChar)DELTA_Alloc(D, sizeof(delta_TChar) * size + 1);
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * size + 1);
 	if (str == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
-	memcpy(str, D->execLine->str + offset, sizeof(delta_TChar) * size);
+	memcpy(str, D->currentLine->str + offset, sizeof(delta_TChar) * size);
 	str[size] = '\0';
 
 	D->stringStack[(D->stringHead)++] = str;
@@ -468,14 +576,63 @@ delta_EStatus MachinePushString(delta_SState* D) {
 }
 
 /* ====================================
- * MachineSetNumeric
+ * MachineSetString
  */
-delta_EStatus MachineSetString(delta_SState* D);
+delta_EStatus MachineSetString(delta_SState* D)  {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->stringHead == 0)
+		return DELTA_MACHINE_STRING_STACK_UNDERFLOW;
+
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (var->str != NULL) {
+		DELTA_Free(D, var->str, (delta_Strlen(var->str) + 1) * sizeof(delta_TChar));
+	}
+
+	var->str = D->stringStack[--(D->stringHead)];
+
+	D->ip += 4;
+	return DELTA_OK;
+}
 
 /* ====================================
  * MachineGetString
  */
-delta_EStatus MachineGetString(delta_SState* D);
+delta_EStatus MachineGetString(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->stringHead + 1 == DELTABASIC_STRING_STACK_SIZE)
+		return DELTA_MACHINE_STRING_STACK_OVERFLOW;
+
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	size_t strSize = 1;
+	if (var->str)
+		strSize = delta_Strlen(var->str);
+	
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * strSize + 1);
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (var->str)
+		memcpy(str, var->str, sizeof(delta_TChar) * strSize);
+		
+	str[strSize] = '\0';
+
+	D->stringStack[(D->stringHead)++] = str;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
 
 // ------------------------------------------------------------------------- //
 
@@ -583,6 +740,47 @@ delta_EStatus MachineNeg(delta_SState* D) {
 // ------------------------------------------------------------------------- //
 
 /* ====================================
+ * MachineStop
+ */
+delta_EStatus MachineStop(delta_SState* D) {
+	D->ip += 1;
+	return DELTA_MACHINE_STOP;
+}
+
+/* ====================================
+ * MachineTab
+ */
+delta_EStatus MachineTab(delta_SState* D) {
+	if (D->numericHead < 1)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+	
+	if (D->stringHead + 1 == DELTABASIC_STRING_STACK_SIZE)
+		return DELTA_MACHINE_STRING_STACK_OVERFLOW;
+
+	--(D->numericHead);
+	long num = (long)D->numericStack[D->numericHead];
+	--num;
+	
+	if (num < 0) // TODO: error?
+		num = 0;
+		//return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (num + 1));
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memset(str, ' ', sizeof(delta_TChar) * num);
+	str[num] = '\0';
+
+	D->stringStack[(D->stringHead)++] = str;
+
+	D->ip += 1;
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
  * FormatNumeric
  */
 size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number) {
@@ -613,10 +811,24 @@ size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number) {
 				str[size++] = '0' + ((int)dec % 10);
 			}
 
+			--size;
 			while (str[size - 1] == '0')
 				--size;
 		}
 	}
 
 	return size;
+}
+
+/* ====================================
+ * PrintTabs
+ */
+size_t PrintTabs(delta_SState* D, size_t size) {
+	size = DELTABASIC_PRINT_TAB_SIZE - size % DELTABASIC_PRINT_TAB_SIZE;
+
+	if (size == 0)
+		return 0;
+
+	const delta_TChar tabBuffer[DELTABASIC_PRINT_TAB_SIZE] = { ' ' };
+	return D->printFunction(tabBuffer, size);
 }

@@ -21,7 +21,9 @@
 static const delta_TChar* op_table[] = {
 	"END",
 	"LET",
-	"PRINT"
+	"PRINT",
+	"STOP",
+	"TAB",
 };
 
 #define DELTA_OP_TABLE_SIZE									(sizeof(op_table) / sizeof(delta_TChar*))
@@ -152,6 +154,21 @@ delta_EParseStatus delta_Parse(delta_SLexerState* L) {
 
 				GetNextChar(&parseHead);
 			}
+			else if (*parseHead == '.') { // FLOAT
+				const char* pNumberStart = parseHead;
+
+				for (GetNextChar(&parseHead); *parseHead != '\0'; GetNextChar(&parseHead)) {
+					if (*parseHead == '.')
+						return PARSE_FLOAT_DOT_AGAIN;
+					else if (isdigit(*parseHead) == 0)
+						break;
+				}
+
+				L->type = LEXEM_FLOAT;
+				L->floatValue = (float)atof(pNumberStart);
+
+				return PARSE_OK;
+			}
 			else { // KEYSYMBOL;
 				L->type = LEXEM_SYMBOL;
 				L->symbol = *parseHead;
@@ -189,9 +206,6 @@ delta_EParseStatus delta_Parse(delta_SLexerState* L) {
 				else
 					++(L->string.size);
 			}
-
-			if (*parseHead == '\0')
-				return PARSE_UNEXPECTED_NULL_TERMINAL;
 			
 			return PARSE_OK;
 		}

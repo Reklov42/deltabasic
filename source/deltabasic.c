@@ -70,10 +70,8 @@ int delta_Print(const delta_TChar str[], size_t size);
 int main(int argc, char* argv[]) {
 	if (argc == 2) {
 		char* code = LoadFile(argv[1]);
-		if (code == NULL) {
-			printf("can't open file: \"%s\". Abort\n", argv[1]);
+		if (code == NULL)
 			return -1;
-		}
 
 		delta_SState* D = delta_CreateState(Allocator, NULL);
 		if (delta_LoadString(D, code) != DELTA_OK) {
@@ -86,6 +84,7 @@ int main(int argc, char* argv[]) {
 		
 		free(code);
 
+		printf("Compiling...\n");
 		if (delta_Compile(D) != DELTA_OK) {
 			printf("can't compile code. Abort\n");
 			delta_ReleaseState(D);
@@ -93,6 +92,7 @@ int main(int argc, char* argv[]) {
 			return -1;
 		}
 
+		printf("Interpreting...\n");
 		delta_EStatus status = delta_Interpret(D, 0);
 		if (status != DELTA_OK) {
 			delta_ReleaseState(D);
@@ -125,12 +125,14 @@ int main(int argc, char* argv[]) {
 
 	printf("%.2i|\n", 123);
 	printf("%+-11f|\n", 0.123);
+	delta_SetNumeric(D, "UMEM", (delta_TNumber)usedMemory);
 
 	char buffer[256];
 	while (1) {
 		printf("> ");
 		fgets(buffer, 256, stdin);
 
+		delta_SetNumeric(D, "UMEM", (delta_TNumber)usedMemory);
 		delta_EStatus status = delta_Execute(D, buffer);
 		/*
 		if (delta_Compile(D) == DELTA_OK) {
@@ -268,7 +270,7 @@ void delta_ReleaseState(delta_SState* D) {
 
 			delta_FreeNumericVariable(D, nvar);
 
-			nvar = nvar; 
+			nvar = nvar->next; 
 		}
 	}
 	
@@ -279,11 +281,110 @@ void delta_ReleaseState(delta_SState* D) {
 
 			delta_FreeStringVariable(D, nvar);
 
-			nvar = nvar; 
+			nvar = nvar->next; 
 		}
 	}
 	
 	allocFunc(D, sizeof(delta_SState), 0, userData);
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_SetNumeric
+ */
+delta_EStatus delta_SetNumeric(delta_SState * D, const char str[], delta_TNumber value) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (str == NULL)
+		return DELTA_STRING_IS_NULL;
+
+	size_t size = strlen(str);
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, str, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+
+	var->value = value;
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * delta_GetNumeric
+ */
+delta_EStatus delta_GetNumeric(delta_SState* D, const char str[], delta_TNumber* value) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (str == NULL)
+		return DELTA_STRING_IS_NULL;
+
+	size_t size = strlen(str);
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, str, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (value != NULL)
+		*value = var->value;
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * delta_SetString
+ */
+delta_EStatus delta_SetString(delta_SState* D, const char str[], const char value[]) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (str == NULL)
+		return DELTA_STRING_IS_NULL;
+
+	size_t valueSize = strlen(value);
+	delta_TChar* buffer = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (valueSize + 1));
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memcpy(buffer, value, sizeof(delta_TChar) * valueSize);
+	buffer[valueSize] = '\0';
+
+	size_t size = strlen(str);
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, str, size);
+	if (var == NULL) {
+		DELTA_Free(D, buffer, sizeof(delta_TChar) * (valueSize + 1));
+		return DELTA_ALLOCATOR_ERROR;
+	}
+
+	if (var->str != NULL) {
+		DELTA_Free(D, var->str, (strlen(var->str) + 1) * sizeof(delta_TChar));
+	}
+
+	var->str = buffer;
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * delta_GetString
+ */
+delta_EStatus delta_GetString(delta_SState* D, const char str[], const char* value[]) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (str == NULL)
+		return DELTA_STRING_IS_NULL;
+
+	size_t size = strlen(str);
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, str, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (value != NULL)
+		*value = var->str;
+
+	return DELTA_OK;
 }
 
 // ------------------------------------------------------------------------- //
@@ -301,14 +402,14 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 	while (*execStr == ' ')
 		++execStr;
 
-	const delta_TChar* end = execStr + strlen(execStr);
+	const delta_TChar* end = execStr + strlen(execStr) - 1;
 	if (*end == '\n')
 		--end;
 
 	while ((*end == ' ') && (execStr < end))
 		--end;
 	
-	size_t size = end - execStr;
+	size_t size = (end - execStr) + 1;
 
 	delta_TInteger lineNumber = 0;
 	const char* str = delta_ReadInteger(execStr, &lineNumber);
@@ -321,7 +422,9 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 
 		memset(bc.bytecode, 0x00, DELTABASIC_EXEC_BYTECODE_SIZE);
 
-		memcpy(D->execLine->str, execStr, DELTABASIC_MIN(size, DELTABASIC_EXEC_STRING_SIZE));
+		size = DELTABASIC_MIN(size, DELTABASIC_EXEC_STRING_SIZE - 1);
+		memcpy(D->execLine->str, execStr, size);
+		D->execLine->str[size] = '\0';
 
 		delta_EStatus status = delta_CompileLine(D, D->execLine, &bc);
 		if (status != DELTA_OK)
@@ -389,14 +492,12 @@ delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
 				--end;
 
 			delta_TInteger lineNumber = 0;
-			const char* start = delta_ReadInteger(start, &lineNumber);
+			start = delta_ReadInteger(start, &lineNumber);
 			if (start != NULL) { // TODO: if (start == NULL)
 				const size_t size = end - start;
 
-				if (size == 0)
-					delta_RemoveLine(D, lineNumber);
-				else {
-					if (delta_InsertLine(D, lineNumber, str, size) == dfalse)
+				if (size != 0) {
+					if (delta_InsertLine(D, lineNumber, start, size) == dfalse)
 						return DELTA_ALLOCATOR_ERROR;
 				}
 			}
@@ -415,10 +516,10 @@ delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
 /* ====================================
  * delta_SetPrintFunction
  */
-int delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func) {
+delta_EStatus delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func) {
 	if (func == NULL)
 		return 0;
 
 	D->printFunction = func;
-	return dtrue;
+	return DELTA_OK;
 }

@@ -145,11 +145,9 @@ inline void delta_FreeNode(delta_SState* D, delta_SLine* line) {
 /* ====================================
  * delta_FindOrAddNumericVariable
  */
-delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, uint16_t offset, uint16_t size) {
+delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, const delta_TChar str[], uint16_t size) {
 	if (D == NULL)
 		return NULL;
-
-	const delta_TChar* str = D->currentLine->str + offset;
 
 	delta_SNumericVariable* var = D->numericValiables;
 	while (var != NULL) {
@@ -186,11 +184,9 @@ void delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* variable
 /* ====================================
  * delta_FindOrAddStringVariable
  */
-delta_SNumericVariable* delta_FindOrAddStringVariable(delta_SState* D, uint16_t offset, uint16_t size) {
+delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delta_TChar str[], uint16_t size) {
 	if (D == NULL)
 		return NULL;
-
-	const delta_TChar* str = D->currentLine->str + offset;
 
 	delta_SStringVariable* var = D->stringVariables;
 	while (var != NULL) {
