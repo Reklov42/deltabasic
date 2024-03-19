@@ -34,12 +34,15 @@ typedef enum {
 	DELTA_STRING_IS_NULL,
 	DELTA_ALLOCATOR_ERROR,
 	DELTA_SYNTAX_ERROR,
+	DELTA_OUT_OF_LINES_RANGE,
 
 	DELTA_MACHINE_UNKNOWN_OPCODE,
 	DELTA_MACHINE_NUMERIC_STACK_OVERFLOW,
 	DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW,
 	DELTA_MACHINE_STRING_STACK_OVERFLOW,
 	DELTA_MACHINE_STRING_STACK_UNDERFLOW,
+	DELTA_MACHINE_RETURN_STACK_OVERFLOW,
+	DELTA_MACHINE_RETURN_STACK_UNDERFLOW,
 	DELTA_MACHINE_NEGATIVE_ARGUMENT,
 	DELTA_MACHINE_STOP,
 	
@@ -94,6 +97,11 @@ delta_EStatus		delta_New(delta_SState* D);
  * delta_Break
  */
 delta_EStatus		delta_Break(delta_SState* D);
+
+/* ====================================
+ * delta_GetLastLine
+ */
+delta_EStatus		delta_GetLastLine(delta_SState* D, size_t* line);
 
 /* ====================================
  * delta_SetNumeric

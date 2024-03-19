@@ -30,11 +30,32 @@ const delta_TChar*	delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
 typedef enum {
 	OP_NONE,
 	OP_END,
+	OP_GOSUB,
+	OP_GOTO,
+	OP_IF,
 	OP_LET,
 	OP_PRINT,
+	OP_RETURN,
 	OP_STOP,
-	OP_TAB,
+//	OP_TAB,
+	OP_THEN,
 } delta_EOp;
+
+/* ====================================
+ * delta_GetOpName
+ */
+const delta_TChar*	delta_GetOpName(delta_EOp op);
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_ESym
+ */
+typedef enum {
+	SYM_ADD,
+	SYM_SUB,
+	SYM_MUL,
+	SYM_DIV,
+} delta_ESym;
 
 /* ====================================
  * delta_GetOpName

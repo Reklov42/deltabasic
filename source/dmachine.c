@@ -178,6 +178,21 @@ delta_EStatus MachineStop(delta_SState* D);
  */
 delta_EStatus MachineTab(delta_SState* D);
 
+/* ====================================
+ * MachineJump
+ */
+delta_EStatus MachineJump(delta_SState* D);
+
+/* ====================================
+ * MachineGoSub
+ */
+delta_EStatus MachineGoSub(delta_SState* D);
+
+/* ====================================
+ * MachineReturn
+ */
+delta_EStatus MachineReturn(delta_SState* D);
+
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -214,7 +229,7 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachinePow,
 	MachineSetNumeric,
 	MachineSetString,
-	OPCODE_JMP,
+	MachineJump,
 	MachinePrintNumeric,
 	MachinePrintNumericT,
 	MachinePrintString,
@@ -231,6 +246,8 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineNeg,
 	MachineStop,
 	MachineTab,
+	MachineGoSub,
+	MachineReturn,
 };
 
 // ------------------------------------------------------------------------- //
@@ -463,15 +480,15 @@ delta_EStatus MachinePrintNumeric(delta_SState* D) {
 		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
 
 	--(D->numericHead);
-	delta_TChar buffer[DELTABASIC_PRINT_BUFFER_SIZE];
-	size_t size = FormatNumeric(
-		buffer,
-		DELTABASIC_PRINT_BUFFER_SIZE,
-		D->numericStack[D->numericHead]
-	);
+	delta_TNumber num = D->numericStack[D->numericHead];
+	delta_TNumber dec = num - (delta_TNumber)((long)num);
+	delta_TChar buffer[32];
 
-	if (size < DELTABASIC_PRINT_BUFFER_SIZE)
-		buffer[size++] = ' ';
+	int size;
+	if (dec < DELTABASIC_NUMERIC_EPSILON)
+		size = snprintf(buffer, 32, "%i", (long)num);
+	else
+		size = snprintf(buffer, 32, "%f", num);
 
 	D->printFunction(buffer, size);
 
@@ -487,12 +504,15 @@ delta_EStatus MachinePrintNumericT(delta_SState* D) {
 		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
 
 	--(D->numericHead);
-	delta_TChar buffer[DELTABASIC_PRINT_BUFFER_SIZE];
-	size_t size = FormatNumeric(
-		buffer,
-		DELTABASIC_PRINT_BUFFER_SIZE,
-		D->numericStack[D->numericHead]
-	);
+	delta_TNumber num = D->numericStack[D->numericHead];
+	delta_TNumber dec = num - (delta_TNumber)((long)num);
+	delta_TChar buffer[32];
+
+	int size;
+	if (dec < DELTABASIC_NUMERIC_EPSILON)
+		size = snprintf(buffer, 32, "%i", (long)num);
+	else
+		size = snprintf(buffer, 32, "%f", num);
 
 	D->printFunction(buffer, size);
 	PrintTabs(D, size);
@@ -745,6 +765,92 @@ delta_EStatus MachineNeg(delta_SState* D) {
 delta_EStatus MachineStop(delta_SState* D) {
 	D->ip += 1;
 	return DELTA_MACHINE_STOP;
+}
+
+/* ====================================
+ * FindLine
+ */
+delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
+	delta_SLine* line = D->currentLine;
+	if (line->line == number) {
+		D->ip = D->ip - 1;
+		return line;
+	}
+	else if (line->line > number) {
+		while (line != NULL) {
+			if (line->line == number) {
+				D->ip = line->offset;
+				D->currentLine = line;
+				break;
+			}
+
+			line = line->prev;
+		}
+	}
+	else { // line->line < number
+		while (line != NULL) {
+			if (line->line == number) {
+				D->ip = line->offset;
+				D->currentLine = line;
+				break;
+			}
+
+			line = line->next;
+		}
+	}
+	
+	return line;
+}
+
+/* ====================================
+ * MachineJump
+ */
+delta_EStatus MachineJump(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord number = *((delta_TWord*)(D->bytecode + D->ip));
+	
+	if (FindLine(D, number) == NULL)
+		return DELTA_OUT_OF_LINES_RANGE;
+
+	//D->ip += 2; // useless
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineGoSub
+ */
+delta_EStatus MachineGoSub(delta_SState* D) {
+	if (D->returnHead + 1 == DELTABASIC_RETURN_STACK_SIZE)
+		return DELTA_MACHINE_RETURN_STACK_OVERFLOW;
+
+	D->ip += 1;
+	const delta_TWord number = *((delta_TWord*)(D->bytecode + D->ip));
+	D->ip += 2;
+	
+	D->returnStack[D->returnHead].ip = D->ip;
+	D->returnStack[D->returnHead].line = D->currentLine;
+	if (FindLine(D, number) == NULL)
+		return DELTA_OUT_OF_LINES_RANGE;
+
+	++(D->returnHead);
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineReturn
+ */
+delta_EStatus MachineReturn(delta_SState* D) {
+	D->ip += 1;
+
+	if (D->returnHead < 1)
+		return DELTA_MACHINE_RETURN_STACK_UNDERFLOW;
+
+	--(D->returnHead);
+	D->ip			= D->returnStack[D->returnHead].ip;
+	D->currentLine	= D->returnStack[D->returnHead].line;
+
+	return DELTA_OK;
 }
 
 /* ====================================

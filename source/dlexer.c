@@ -20,10 +20,15 @@
 
 static const delta_TChar* op_table[] = {
 	"END",
+	"GOSUB",
+	"GOTO",
+	"IF",
 	"LET",
 	"PRINT",
+	"RETURN",
 	"STOP",
-	"TAB",
+//	"TAB",
+	"THEN"
 };
 
 #define DELTA_OP_TABLE_SIZE									(sizeof(op_table) / sizeof(delta_TChar*))
@@ -178,6 +183,13 @@ delta_EParseStatus delta_Parse(delta_SLexerState* L) {
 			return PARSE_OK;
 		}
 		else if (isalpha(*parseHead) != 0) { // OP | NAME
+			if (delta_Strncmp(parseHead, "REM", 3) == 0) {
+				while (GetNextChar(&parseHead) != '\0');
+
+				L->type = LEXEM_EOL;
+				return PARSE_OK;
+			}
+
 			size_t index;
 			for (index = 0; index < DELTA_OP_TABLE_SIZE; ++index) { // OP
 				const size_t size = delta_Strlen(op_table[index]);

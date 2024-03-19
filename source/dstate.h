@@ -52,6 +52,14 @@ typedef struct delta_SStringVariable {
 } delta_SStringVariable;
 
 /* ====================================
+ * delta_SReturnState
+ */
+typedef struct delta_SReturnState {
+	delta_SLine*	line;
+	size_t			ip;
+} delta_SReturnState;
+
+/* ====================================
  * delta_SState
  */
 struct delta_SState {
@@ -64,6 +72,7 @@ struct delta_SState {
 	delta_SLine*			currentLine; // If NULL, do nothing (program ENDed)
 
 	delta_SLine*			execLine;
+	size_t					lineNumber; // for errors
 
 	delta_SNumericVariable*	numericValiables;
 	delta_SStringVariable*	stringVariables;
@@ -73,6 +82,9 @@ struct delta_SState {
 
 	size_t					stringHead;
 	delta_TChar*			stringStack[DELTABASIC_STRING_STACK_SIZE];
+
+	size_t					returnHead;
+	delta_SReturnState		returnStack[DELTABASIC_RETURN_STACK_SIZE];
 
 	size_t					bytecodeSize;
 	delta_TByte*			bytecode;

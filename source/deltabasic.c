@@ -86,7 +86,7 @@ int main(int argc, char* argv[]) {
 
 		printf("Compiling...\n");
 		if (delta_Compile(D) != DELTA_OK) {
-			printf("can't compile code. Abort\n");
+			printf("can't compile code (ERROR IN %zu). Abort\n", D->lineNumber);
 			delta_ReleaseState(D);
 
 			return -1;
@@ -286,6 +286,21 @@ void delta_ReleaseState(delta_SState* D) {
 	}
 	
 	allocFunc(D, sizeof(delta_SState), 0, userData);
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_GetLastLine
+ */
+delta_EStatus delta_GetLastLine(delta_SState* D, size_t* line) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (line != NULL)
+		*line = D->lineNumber;
+
+	return DELTA_OK;
 }
 
 // ------------------------------------------------------------------------- //
