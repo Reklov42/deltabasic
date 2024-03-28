@@ -19,16 +19,21 @@
 					//										//										//
 
 static const delta_TChar* op_table[] = {
+	"DIM",
 	"END",
+	"FOR",
 	"GOSUB",
 	"GOTO",
 	"IF",
 	"LET",
+	"NEXT",
 	"PRINT",
 	"RETURN",
+	"STEP",
 	"STOP",
 //	"TAB",
-	"THEN"
+	"THEN",
+	"TO"
 };
 
 #define DELTA_OP_TABLE_SIZE									(sizeof(op_table) / sizeof(delta_TChar*))

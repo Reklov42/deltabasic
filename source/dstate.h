@@ -60,6 +60,19 @@ typedef struct delta_SReturnState {
 } delta_SReturnState;
 
 /* ====================================
+ * delta_SForState
+ */
+typedef struct delta_SForState {
+	delta_SLine*	startLine;
+	size_t			startIp;
+
+	delta_TNumber	end;
+	delta_TNumber	step;
+
+	delta_SNumericVariable* counter;
+} delta_SForState;
+
+/* ====================================
  * delta_SState
  */
 struct delta_SState {
@@ -85,6 +98,9 @@ struct delta_SState {
 
 	size_t					returnHead;
 	delta_SReturnState		returnStack[DELTABASIC_RETURN_STACK_SIZE];
+
+	size_t					forHead;
+	delta_SForState			forStack[DELTABASIC_FOR_STACK_SIZE];
 
 	size_t					bytecodeSize;
 	delta_TByte*			bytecode;

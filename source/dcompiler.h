@@ -15,6 +15,9 @@
 
 					//										//										//
 
+/* ====================================
+ * delta_SBytecode
+ */
 typedef struct delta_SBytecode {
 	size_t			bytecodeSize;
 	size_t			index;
@@ -30,6 +33,6 @@ delta_EStatus		delta_Compile(delta_SState* D);
 /* ====================================
  * delta_CompileLine
  */
-delta_EStatus		delta_CompileLine(delta_SState* D, delta_SLine* Line, delta_SBytecode* bytecode);
+delta_EStatus		delta_CompileLine(delta_SState* D, delta_SLine* Line, delta_TChar* str, delta_SBytecode* bytecode);
 
 #endif /* !__DELTABASIC_COMPILER_H__ */

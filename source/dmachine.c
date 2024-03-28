@@ -193,6 +193,28 @@ delta_EStatus MachineGoSub(delta_SState* D);
  */
 delta_EStatus MachineReturn(delta_SState* D);
 
+/* ====================================
+ * MachineJumpNextLineIfNotZero
+ */
+delta_EStatus MachineJumpNextLineIfNotZero(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineSetFor
+ */
+delta_EStatus MachineSetFor(delta_SState* D);
+
+/* ====================================
+ * MachineSetStepFor
+ */
+delta_EStatus MachineSetStepFor(delta_SState* D);
+
+/* ====================================
+ * MachineNextFor
+ */
+delta_EStatus MachineNextFor(delta_SState* D);
+
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -248,6 +270,10 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineTab,
 	MachineGoSub,
 	MachineReturn,
+	MachineJumpNextLineIfNotZero,
+	MachineSetFor,
+	MachineSetStepFor,
+	MachineNextFor
 };
 
 // ------------------------------------------------------------------------- //
@@ -772,6 +798,13 @@ delta_EStatus MachineStop(delta_SState* D) {
  */
 delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
 	delta_SLine* line = D->currentLine;
+	if ((D->currentLine->prev == NULL) && (D->currentLine->next == NULL)) {
+		line = D->head;
+
+		if (line == NULL)
+			return NULL;
+	}
+
 	if (line->line == number) {
 		D->ip = D->ip - 1;
 		return line;
@@ -852,6 +885,141 @@ delta_EStatus MachineReturn(delta_SState* D) {
 
 	return DELTA_OK;
 }
+
+/* ====================================
+ * MachineJumpNextLineIfNotZero
+ */
+delta_EStatus MachineJumpNextLineIfNotZero(delta_SState* D) {
+	D->ip += 1;
+
+	if (D->numericHead == 0)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	--(D->numericHead);
+	delta_TNumber value = D->numericStack[D->numericHead];
+	if (fabsf(value) < DELTABASIC_NUMERIC_EPSILON) {
+		D->currentLine = D->currentLine->next;
+		if (D->currentLine != NULL)
+			D->ip = D->currentLine->offset;
+	}
+
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineSetFor
+ */
+delta_EStatus MachineSetFor(delta_SState* D) {
+	if (D->forHead + 1 == DELTABASIC_FOR_STACK_SIZE)
+		return DELTA_MACHINE_FOR_STACK_OVERFLOW;
+
+	if (D->numericHead < 2)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead < 2)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	D->ip += 4;
+
+	delta_SForState* forState = &(D->forStack[D->forHead]);
+	++(D->forHead);
+
+	forState->startLine = D->currentLine;
+	forState->startIp = D->ip;
+	forState->step = 1.0f;
+
+	--(D->numericHead);
+	forState->end = D->numericStack[D->numericHead];
+
+	--(D->numericHead);
+	var->value = D->numericStack[D->numericHead];
+	forState->counter = var;
+	
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineSetStepFor
+ */
+delta_EStatus MachineSetStepFor(delta_SState* D) {
+	if (D->forHead + 1 == DELTABASIC_FOR_STACK_SIZE)
+		return DELTA_MACHINE_FOR_STACK_OVERFLOW;
+
+	if (D->numericHead < 2)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead < 3)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	D->ip += 4;
+
+	delta_SForState* forState = &(D->forStack[D->forHead]);
+	++(D->forHead);
+
+	forState->startLine = D->currentLine;
+	forState->startIp = D->ip;
+
+	--(D->numericHead);
+	forState->step = D->numericStack[D->numericHead];
+
+	--(D->numericHead);
+	forState->end = D->numericStack[D->numericHead];
+
+	--(D->numericHead);
+	var->value = D->numericStack[D->numericHead];
+	forState->counter = var;
+	
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineNextFor
+ */
+delta_EStatus MachineNextFor(delta_SState* D) {
+	if (D->forHead < 1)
+		return DELTA_MACHINE_FOR_STACK_UNDERFLOW;
+
+	D->ip += 1;
+
+	delta_SForState* forState = &(D->forStack[D->forHead - 1]);
+	if (forState->counter == NULL) // Just in case
+		return DELTA_ALLOCATOR_ERROR;
+
+	forState->counter->value += forState->step;
+	const delta_TBool bJump = (forState->step > 0.0f) ?
+		(forState->counter->value <= forState->end) : // Increment
+		(forState->counter->value >= forState->end); // Decrement
+
+	if (bJump == dtrue) {
+		D->currentLine = forState->startLine;
+		D->ip = forState->startIp;
+	}
+	else {
+		--(D->forHead);
+	}
+
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
 
 /* ====================================
  * MachineTab

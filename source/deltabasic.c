@@ -62,6 +62,23 @@ void* Allocator(void* ptr, size_t currentSize, size_t newSize, void* userData) {
  */
 int delta_Print(const delta_TChar str[], size_t size);
 
+/* ====================================
+ * PrintError
+ */
+void PrintError(delta_EStatus status) {
+	const char* e = "";
+
+	switch (status) {
+		case DELTA_OK:					e = "OK"; break;
+		case DELTA_END:					e = "END"; break;
+		case DELTA_ALLOCATOR_ERROR:		e = "ALLOCATOR_ERROR"; break;
+		case DELTA_SYNTAX_ERROR:		e = "SYNTAX_ERROR"; break;
+		case DELTA_OUT_OF_LINES_RANGE:	e = "OUT_OF_LINES_RANGE"; break;
+	}
+
+	printf("%s\n", e);
+}
+
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -108,6 +125,8 @@ int main(int argc, char* argv[]) {
 			return -1;
 		}
 
+		printf("Done.\n");
+
 		return 0;
 	}
 
@@ -123,8 +142,6 @@ int main(int argc, char* argv[]) {
 	//delta_CompileSource(D, code);
 	PrintUsedMemory();
 
-	printf("%.2i|\n", 123);
-	printf("%+-11f|\n", 0.123);
 	delta_SetNumeric(D, "UMEM", (delta_TNumber)usedMemory);
 
 	char buffer[256];
@@ -143,11 +160,7 @@ int main(int argc, char* argv[]) {
 			}
 		}*/
 		if (status != DELTA_OK) {
-			if (status == DELTA_ALLOCATOR_ERROR)
-				printf("DELTA_ALLOCATOR_ERROR\n");
-
-			if (status == DELTA_SYNTAX_ERROR)
-				printf("DELTA_SYNTAX_ERROR\n");
+			PrintError(status);
 		}
 
 		/*
@@ -440,18 +453,33 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 		size = DELTABASIC_MIN(size, DELTABASIC_EXEC_STRING_SIZE - 1);
 		memcpy(D->execLine->str, execStr, size);
 		D->execLine->str[size] = '\0';
+		D->execLine->next = NULL;
+		D->execLine->prev = NULL;
+		D->execLine->line = -1;
 
-		delta_EStatus status = delta_CompileLine(D, D->execLine, &bc);
+		delta_EStatus status = delta_CompileLine(D, D->execLine, NULL, &bc);
 		if (status != DELTA_OK)
 			return status;
+
+		if (D->bCompiled == dfalse) {
+			status = delta_Compile(D);
+			if (status != DELTA_OK)
+				return status;
+		}
 
 		D->currentLine = D->execLine;
 		D->ip = 0;
 
-		while(delta_ExecuteInstruction(D) == DELTA_OK);
+		while (dtrue) {
+			status = delta_ExecuteInstruction(D);
+			if (status != DELTA_OK) {
+				PrintError(status);
+				break;
+			}
+		}
 	}
 	else {
-		size = end - str;
+		size = (end - str) + 1;
 
 		D->bCompiled = dfalse;
 		if (size == 0)
