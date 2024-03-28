@@ -1,0 +1,28 @@
+{
+	"files.associations": {
+		"sstream": "c",
+		"array": "c",
+		"hash_map": "c",
+		"bitset": "c",
+		"string_view": "c",
+		"hash_set": "c",
+		"format": "c",
+		"initializer_list": "c",
+		"span": "c",
+		"valarray": "c",
+		"any": "c",
+		"complex": "c",
+		"charconv": "c",
+		"compare": "c",
+		"functional": "c",
+		"ratio": "c",
+		"tuple": "c",
+		"type_traits": "c",
+		"utility": "c",
+		"variant": "c",
+		"ctype.h": "c",
+		"dstring.h": "c",
+		"dlimits.h": "c",
+		"chrono": "c"
+	}
+}
