@@ -63,6 +63,11 @@ void* Allocator(void* ptr, size_t currentSize, size_t newSize, void* userData) {
 int delta_Print(const delta_TChar str[], size_t size);
 
 /* ====================================
+ * delta_Input
+ */
+int delta_Input(delta_TChar* buffer, size_t size);
+
+/* ====================================
  * PrintError
  */
 void PrintError(delta_EStatus status) {
@@ -74,6 +79,10 @@ void PrintError(delta_EStatus status) {
 		case DELTA_ALLOCATOR_ERROR:		e = "ALLOCATOR_ERROR"; break;
 		case DELTA_SYNTAX_ERROR:		e = "SYNTAX_ERROR"; break;
 		case DELTA_OUT_OF_LINES_RANGE:	e = "OUT_OF_LINES_RANGE"; break;
+		case DELTA_MACHINE_INPUT_PARSE_ERROR:		e = "MACHINE_INPUT_PARSE_ERROR"; break;
+		case DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA:	e = "MACHINE_NOT_ENOUGH_INPUT_DATA"; break;
+		default:
+			printf("E:%i", status);
 	}
 
 	printf("%s\n", e);
@@ -116,11 +125,7 @@ int main(int argc, char* argv[]) {
 			if (status == DELTA_END)
 				return 0;
 
-			if (status == DELTA_ALLOCATOR_ERROR)
-				printf("DELTA_ALLOCATOR_ERROR\n");
-
-			if (status == DELTA_SYNTAX_ERROR)
-				printf("DELTA_SYNTAX_ERROR\n");
+			PrintError(status);
 
 			return -1;
 		}
@@ -151,6 +156,10 @@ int main(int argc, char* argv[]) {
 
 		delta_SetNumeric(D, "UMEM", (delta_TNumber)usedMemory);
 		delta_EStatus status = delta_Execute(D, buffer);
+		if (status != DELTA_OK) {
+			PrintError(status);
+		}
+
 		/*
 		if (delta_Compile(D) == DELTA_OK) {
 			for (size_t i = 0; i < D->bytecodeSize; ++i) {
@@ -159,9 +168,6 @@ int main(int argc, char* argv[]) {
 					printf("\n");
 			}
 		}*/
-		if (status != DELTA_OK) {
-			PrintError(status);
-		}
 
 		/*
 		for (size_t i = 0; i < DELTABASIC_EXEC_BYTECODE_SIZE; ++i) {
@@ -222,6 +228,22 @@ int delta_Print(const delta_TChar str[], size_t size) {
 	return n;
 }
 
+/* ====================================
+ * delta_Input
+ */
+int delta_Input(delta_TChar* buffer, size_t size) {
+	size_t i;
+	for (i = 0; i < size; i++) {
+		char ch = getchar();
+		if ((ch == EOF) || (ch == '\n'))
+			return i;
+
+		buffer[i] = ch;
+	}
+
+	return i;
+}
+
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -240,6 +262,7 @@ delta_SState* delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncU
 	D->allocFunction		= allocFunc;
 	D->allocFuncUserData	= allocFuncUserData;
 	D->printFunction		= delta_Print;
+	D->inputFunction		= delta_Input;
 
 	D->execLine				= (delta_SLine*)DELTA_Alloc(D, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
 	CreateStateAssert(D->execLine == NULL);
@@ -461,22 +484,10 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 		if (status != DELTA_OK)
 			return status;
 
-		if (D->bCompiled == dfalse) {
-			status = delta_Compile(D);
-			if (status != DELTA_OK)
-				return status;
-		}
-
 		D->currentLine = D->execLine;
 		D->ip = 0;
 
-		while (dtrue) {
-			status = delta_ExecuteInstruction(D);
-			if (status != DELTA_OK) {
-				PrintError(status);
-				break;
-			}
-		}
+		return delta_Interpret(D, 0);
 	}
 	else {
 		size = (end - str) + 1;
@@ -499,6 +510,12 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 delta_EStatus delta_Interpret(delta_SState* D, size_t nInstructions) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
+
+	if (D->bCompiled == dfalse) {
+		delta_EStatus status = delta_Compile(D);
+		if (status != DELTA_OK)
+			return status;
+	}
 
 	if (nInstructions == 0)
 		nInstructions = SIZE_MAX;

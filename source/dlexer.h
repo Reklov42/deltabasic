@@ -35,6 +35,7 @@ typedef enum {
 	OP_GOSUB,
 	OP_GOTO,
 	OP_IF,
+	OP_INPUT,
 	OP_LET,
 	OP_NEXT,
 	OP_PRINT,

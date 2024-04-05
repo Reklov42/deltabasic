@@ -15,6 +15,7 @@
 #include "dstate.h"
 #include "dopcodes.h"
 #include "dstring.h"
+#include "dlexer.h"
 					//										//										//
 
 // ------------------------------------------------------------------------- //
@@ -218,6 +219,18 @@ delta_EStatus MachineNextFor(delta_SState* D);
 // ------------------------------------------------------------------------- //
 
 /* ====================================
+ * MachineInputNumeric
+ */
+delta_EStatus MachineInputNumeric(delta_SState* D);
+
+/* ====================================
+ * MachineInputString
+ */
+delta_EStatus MachineInputString(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
  * FormatNumeric
  */
 size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number);
@@ -273,7 +286,9 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineJumpNextLineIfNotZero,
 	MachineSetFor,
 	MachineSetStepFor,
-	MachineNextFor
+	MachineNextFor,
+	MachineInputNumeric,
+	MachineInputString
 };
 
 // ------------------------------------------------------------------------- //
@@ -394,7 +409,7 @@ delta_EStatus MachineConcat(delta_SState* D) {
 	const size_t sizeB = delta_Strlen(strB);
 	const size_t size = sizeA + sizeB;
 
-	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * size + 1);
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (size + 1));
 	if (str == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
@@ -608,7 +623,7 @@ delta_EStatus MachinePushString(delta_SState* D) {
 	D->ip += 1;
 	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
 	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
-	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * size + 1);
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (size + 1));
 	if (str == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
@@ -665,7 +680,7 @@ delta_EStatus MachineGetString(delta_SState* D) {
 	if (var->str)
 		strSize = delta_Strlen(var->str);
 	
-	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * strSize + 1);
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (strSize + 1));
 	if (str == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
@@ -1016,6 +1031,76 @@ delta_EStatus MachineNextFor(delta_SState* D) {
 		--(D->forHead);
 	}
 
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineInputNumeric
+ */
+delta_EStatus MachineInputNumeric(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+	
+	D->printFunction(D->currentLine->str + offset, size);
+	D->printFunction("? ", 2);
+
+	delta_TChar buffer[DELTABASIC_INPUT_BUFFER_SIZE];
+	size_t inputSize = D->inputFunction(buffer, DELTABASIC_INPUT_BUFFER_SIZE - 1);
+	if (inputSize < 1)
+		return DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA;
+
+	buffer[inputSize] = '\0';
+	delta_TInteger value;
+	if (delta_ReadInteger(buffer, &value) == NULL)
+		return DELTA_MACHINE_INPUT_PARSE_ERROR;
+
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	var->value = value;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineInputString
+ */
+delta_EStatus MachineInputString(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	D->printFunction(D->currentLine->str + offset, size);
+	D->printFunction("$? ", 3);
+
+	delta_TChar buffer[DELTABASIC_INPUT_BUFFER_SIZE];
+	size_t inputSize = D->inputFunction(buffer, DELTABASIC_INPUT_BUFFER_SIZE - 1);
+	if (inputSize < 1)
+		return DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA;
+
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, D->currentLine->str + offset, size);
+	if (var == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (var->str != NULL) {
+		DELTA_Free(D, var->str, (delta_Strlen(var->str) + 1) * sizeof(delta_TChar));
+	}
+
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (inputSize + 1));
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memcpy(str, buffer, sizeof(delta_TChar) * inputSize);
+	str[inputSize] = '\0';
+
+	var->str = str;
+
+	D->ip += 4;
 	return DELTA_OK;
 }
 

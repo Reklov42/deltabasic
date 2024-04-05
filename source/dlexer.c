@@ -25,6 +25,7 @@ static const delta_TChar* op_table[] = {
 	"GOSUB",
 	"GOTO",
 	"IF",
+	"INPUT",
 	"LET",
 	"NEXT",
 	"PRINT",

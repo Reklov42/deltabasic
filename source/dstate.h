@@ -80,6 +80,7 @@ struct delta_SState {
 	void*					allocFuncUserData;
 
 	delta_TPrintFunction	printFunction;
+	delta_TInputFunction	inputFunction;
 
 	size_t					ip; // Instruction Pointer
 	delta_SLine*			currentLine; // If NULL, do nothing (program ENDed)

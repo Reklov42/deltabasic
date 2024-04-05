@@ -46,6 +46,8 @@ typedef enum {
 	DELTA_MACHINE_FOR_STACK_OVERFLOW,
 	DELTA_MACHINE_FOR_STACK_UNDERFLOW,
 	DELTA_MACHINE_NEGATIVE_ARGUMENT,
+	DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA,
+	DELTA_MACHINE_INPUT_PARSE_ERROR,
 	DELTA_MACHINE_STOP,
 	
 	DELTA_MATH_STATUS,
@@ -176,5 +178,18 @@ typedef int (*delta_TPrintFunction)(const delta_TChar str[], size_t size);
  * delta_SetPrintFunction
  */
 delta_EStatus		delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func);
+
+/* ====================================
+ * delta_TInputFunction
+ *
+ * Returns filled size or -1 on error
+ */
+typedef int (*delta_TInputFunction)(delta_TChar* buffer, size_t size);
+
+/* ====================================
+ * delta_SetInputFunction
+ */
+delta_EStatus		delta_SetInputFunction(delta_SState* D, delta_TInputFunction func);
+
 
 #endif /* !__DELTABASIC_H__ */

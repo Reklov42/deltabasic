@@ -237,6 +237,46 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 					return DELTA_SYNTAX_ERROR;
 			}
 		}
+		else if (L->op == OP_INPUT) {
+			CompileInstructionParseAssert();
+			while (dtrue) {
+				if (L->type == LEXEM_SYMBOL) {
+					if (L->symbol == ':')
+						break;
+					else if (L->symbol == ',') {
+						// Nothing
+					}
+					
+					return DELTA_SYNTAX_ERROR;
+				}
+				else if (L->type == LEXEM_EOL)
+					break;
+
+				if (L->type != LEXEM_NAME)
+					return DELTA_SYNTAX_ERROR;
+
+				delta_SLexemString name = L->string;
+				CompileInstructionParseAssert();
+
+				delta_EMathStatus status = MATH_OK_UNDEF;
+				if (L->type == LEXEM_SYMBOL) {
+					if (L->symbol == '$') // String
+						status = MATH_OK_STRING;
+					else if (L->symbol == ',') // Numeric
+						status = MATH_OK_NUMERIC;
+
+					CompileInstructionParseAssert();
+				}
+				else if ((L->type == LEXEM_NAME) || (L->type == LEXEM_EOL)) // Numeric
+					status = MATH_OK_NUMERIC;
+
+				if (status != MATH_OK_UNDEF) {
+					PushAssert(PushBytecodeByte(D, BC, (status == MATH_OK_NUMERIC) ? OPCODE_INPUTN : OPCODE_INPUTS));
+					PushAssert(PushBytecodeWord(D, BC, name.offset));
+					PushAssert(PushBytecodeWord(D, BC, name.size));
+				}
+			}
+		}
 		else if (L->op == OP_END) {
 			PushAssert(PushBytecodeByte(D, BC, OPCODE_HLT));
 		}
@@ -478,7 +518,7 @@ delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_
 
 		if (*mathStatus == MATH_OK_STRING) {
 			ParseAssert();
-			if ((L->type == LEXEM_SYMBOL) && (L->symbol == '$'))
+			if ((L->type != LEXEM_SYMBOL) || (L->symbol != '$'))
 				return DELTA_SYNTAX_ERROR;
 
 			PushAssert(PushBytecodeByte(D, BC, OPCODE_GETS));
