@@ -31,6 +31,8 @@ typedef struct delta_SLine {
 	struct delta_SLine* next;
 } delta_SLine;
 
+// ------------------------------------------------------------------------- //
+
 /* ====================================
  * delta_SNumericVariable
  */
@@ -50,6 +52,32 @@ typedef struct delta_SStringVariable {
 
 	struct delta_SStringVariable* next;
 } delta_SStringVariable;
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_SNumericArray
+ */
+typedef struct delta_SNumericArray {
+	delta_TChar*	name; // Allocated at the end of the struct
+	delta_TNumber*	array;
+	size_t			size;
+
+	struct delta_SNumericArray* next;
+} delta_SNumericArray;
+
+/* ====================================
+ * delta_SStringArray
+ */
+typedef struct delta_SStringArray {
+	delta_TChar*	name; // Allocated at the end of the struct
+	delta_TChar**	array;
+	size_t			size;
+
+	struct delta_SStringArray* next;
+} delta_SStringArray;
+
+// ------------------------------------------------------------------------- //
 
 /* ====================================
  * delta_SReturnState
@@ -72,6 +100,35 @@ typedef struct delta_SForState {
 	delta_SNumericVariable* counter;
 } delta_SForState;
 
+// ------------------------------------------------------------------------- //
+
+typedef union {
+	delta_TNumber		numeric;
+	const delta_TChar*	string;
+} delta_UCFuncValue;
+
+/* ====================================
+ * delta_SCFunction
+ */
+typedef struct delta_SCFunction {
+	delta_TChar*		name; // Allocated at the end of the struct
+	delta_TCFunction	func;
+	delta_TCFuncArgMask	argsMask;
+	delta_TByte			argCount;
+	delta_ECFuncArgType	retType;
+} delta_SCFunction;
+
+/* ====================================
+ * delta_SCFuncVector
+ */
+typedef struct delta_SCFuncVector {
+	delta_SCFunction**	array;
+	size_t				size;
+	size_t				allocated;
+} delta_SCFuncVector;
+
+// ------------------------------------------------------------------------- //
+
 /* ====================================
  * delta_SState
  */
@@ -91,6 +148,9 @@ struct delta_SState {
 	delta_SNumericVariable*	numericValiables;
 	delta_SStringVariable*	stringVariables;
 
+	delta_SNumericArray*	numericArrays;
+	delta_SStringArray*		stringArrays;
+
 	size_t					numericHead;
 	delta_TNumber			numericStack[DELTABASIC_NUMERIC_STACK_SIZE];
 
@@ -102,6 +162,12 @@ struct delta_SState {
 
 	size_t					forHead;
 	delta_SForState			forStack[DELTABASIC_FOR_STACK_SIZE];
+
+	delta_SCFuncVector		cfuncVector;
+	delta_SCFunction*		currentCFunc;
+	delta_UCFuncValue		cfuncArgs[DELTABASIC_CFUNC_MAX_ARGS];
+	delta_UCFuncValue		cfuncReturn;
+	delta_TBool				bIgnoreCFuncReturn;
 
 	size_t					bytecodeSize;
 	delta_TByte*			bytecode;
@@ -138,7 +204,7 @@ void				delta_FreeNode(delta_SState* D, delta_SLine* line);
 /* ====================================
  * delta_FindOrAddNumericVariable
  * 
- * strSize - size of string with a null-terminal
+ * size - size of name in string with a null-terminal
  */
 delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, const delta_TChar str[], uint16_t size);
 
@@ -154,7 +220,7 @@ void				delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* varia
 /* ====================================
  * delta_FindOrAddStringVariable
  * 
- * strSize - size of string with a null-terminal
+ * size - size of name in string with a null-terminal
  */
 delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delta_TChar str[], uint16_t size);
 
@@ -164,6 +230,52 @@ delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delt
  * Only free the variable. Doesn't fix the list
  */
 void				delta_FreeStringVariable(delta_SState* D, delta_SStringVariable* variable);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddNumericArray
+ * 
+ * size - size of name in string with a null-terminal
+ */
+delta_SNumericArray* delta_FindOrAddNumericArray(delta_SState* D, const delta_TChar str[], uint16_t size);
+
+/* ====================================
+ * delta_FreeNumericArray
+ *
+ * Only free the array. Doesn't fix the list
+ */
+void				delta_FreeNumericArray(delta_SState* D, delta_SNumericArray* array);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddStringArray
+ * 
+ * size - size of name in string with a null-terminal
+ */
+delta_SStringArray* delta_FindOrAddStringArray(delta_SState* D, const delta_TChar str[], uint16_t size);
+
+/* ====================================
+ * delta_FreeStringArray
+ *
+ * Only free the array. Doesn't fix the list
+ */
+void				delta_FreeStringArray(delta_SState* D, delta_SStringArray* array);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindCFunction
+ */
+delta_TBool			delta_FindCFunction(delta_SState* D, const delta_TChar name[], uint16_t size, size_t* index);
+
+/* ====================================
+ * delta_FreeCFunction
+ */
+void				delta_FreeCFunction(delta_SState* D, delta_SCFunction* function);
+
+// ------------------------------------------------------------------------- //
 
 /* ====================================
  * delta_FreeStringStack

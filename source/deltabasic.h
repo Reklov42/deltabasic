@@ -35,6 +35,9 @@ typedef enum {
 	DELTA_ALLOCATOR_ERROR,
 	DELTA_SYNTAX_ERROR,
 	DELTA_OUT_OF_LINES_RANGE,
+	DELTA_ARG_TYPE_IS_NULL,
+	DELTA_ARG_OUT_OF_RANGE,
+	DELTA_FUNC_IS_NULL,
 
 	DELTA_MACHINE_UNKNOWN_OPCODE,
 	DELTA_MACHINE_NUMERIC_STACK_OVERFLOW,
@@ -48,7 +51,14 @@ typedef enum {
 	DELTA_MACHINE_NEGATIVE_ARGUMENT,
 	DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA,
 	DELTA_MACHINE_INPUT_PARSE_ERROR,
+	DELTA_MACHINE_REDIM_ERROR,
+	DELTA_MACHINE_OUT_OF_RANGE,
 	DELTA_MACHINE_STOP,
+
+	DELTA_CFUNC_WRONG_RETURN_TYPE,
+	DELTA_CFUNC_WRONG_ARG_TYPE,
+	DELTA_CFUNC_NAME_EXISTS,
+	DELTA_FUNC_CALLED_OUTSIDE_CFUNC,
 	
 	DELTA_MATH_STATUS,
 } delta_EStatus;
@@ -110,24 +120,77 @@ delta_EStatus		delta_GetLastLine(delta_SState* D, size_t* line);
 /* ====================================
  * delta_SetNumeric
  */
-delta_EStatus		delta_SetNumeric(delta_SState* D, const char str[], delta_TNumber value);
+delta_EStatus		delta_SetNumeric(delta_SState* D, const char name[], delta_TNumber value);
 
 /* ====================================
  * delta_GetNumeric
  */
-delta_EStatus		delta_GetNumeric(delta_SState* D, const char str[], delta_TNumber* value);
+delta_EStatus		delta_GetNumeric(delta_SState* D, const char name[], delta_TNumber* value);
 
 /* ====================================
  * delta_SetString
  */
-delta_EStatus		delta_SetString(delta_SState* D, const char str[], const char value[]);
+delta_EStatus		delta_SetString(delta_SState* D, const char name[], const char value[]);
 
 /* ====================================
  * delta_GetString
  *
  * DO NOT save a pointer, just copy the data
  */
-delta_EStatus		delta_GetString(delta_SState* D, const char str[], const char* value[]);
+delta_EStatus		delta_GetString(delta_SState* D, const char name[], const char* value[]);
+
+// ------------------------------------------------------------------------- //
+//
+//
+
+/* ====================================
+ * delta_ECFuncArgType
+ *
+ * Used in bit field
+ */
+typedef enum {
+	DELTA_CFUNC_ARG_NUMERIC = 0,
+	DELTA_CFUNC_ARG_STRING = 1
+} delta_ECFuncArgType;
+
+/* ====================================
+ * delta_GetArgType
+ */
+//delta_EStatus		delta_GetArgType(delta_SState* D, size_t index, delta_ECFuncArgType* type);
+
+/* ====================================
+ * delta_SetNumeric
+ */
+delta_EStatus		delta_GetArgNumeric(delta_SState* D, size_t index, delta_TNumber* value);
+
+/* ====================================
+ * delta_GetArgString
+ *
+ * DO NOT save a pointer, just copy the data
+ */
+delta_EStatus		delta_GetArgString(delta_SState* D, size_t index, const char* value[]);
+
+/* ====================================
+ * delta_ReturnNumeric
+ */
+delta_EStatus		delta_ReturnNumeric(delta_SState* D, delta_TNumber value);
+
+/* ====================================
+ * delta_ReturnString
+ */
+delta_EStatus		delta_ReturnString(delta_SState* D, const char* value[]);
+
+/* ====================================
+ * delta_TCFunction
+ */
+typedef delta_EStatus (*delta_TCFunction)(delta_SState* D);
+
+/* ====================================
+ * delta_RegisterCFunction
+ *
+ * The size of argsType must be argCount + 1. The last argsType is return type
+ */
+delta_EStatus		delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_TCFunction func);
 
 // ------------------------------------------------------------------------- //
 //
@@ -151,7 +214,7 @@ delta_EStatus		delta_Interpret(delta_SState* D, size_t nInstructions);
 //
 
 /* ====================================
- * TReadFunction
+ * delta_TReadFunction
  */
 typedef size_t (*delta_TReadFunction)(void* pData, size_t size, size_t count);
 

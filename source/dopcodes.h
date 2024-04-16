@@ -55,8 +55,18 @@ typedef enum {
 	OPCODE_NEXTFOR,
 	OPCODE_INPUTN,		// Input Numeric
 	OPCODE_INPUTS,		// Input String
+	OPCODE_ALLOCN,		// Allocate Number Array
+	OPCODE_ALLOCS,		// Allocate String Array
+	OPCODE_GETIN,		// Get indexed Number
+	OPCODE_GETIS,		// Get indexed String
+	OPCODE_SETIN,		// Set indexed Number
+	OPCODE_SETIS,		// Set indexed String
+	OPCODE_CALLN,		// Call Numeric cfunc
+	OPCODE_CALLS,		// Call String cfunc
+	OPCODE_CALLNR,		// Call Numeric cfunc with return
+	OPCODE_CALLSR,		// Call String cfunc with return
 	OPCODE_COUNT,
-	OPCODE_LAST = OPCODE_INPUTS,
+	OPCODE_LAST = OPCODE_CALLSR,
 } delta_EOpcodes;
 
 #endif /* !__DELTABASIC_OPCODES_H__ */

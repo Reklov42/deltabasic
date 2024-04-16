@@ -231,6 +231,62 @@ delta_EStatus MachineInputString(delta_SState* D);
 // ------------------------------------------------------------------------- //
 
 /* ====================================
+ * AllocNumericArray
+ */
+delta_EStatus AllocNumericArray(delta_SState* D, delta_SNumericArray* array);
+
+/* ====================================
+ * AllocStringArray
+ */
+delta_EStatus AllocStringArray(delta_SState* D, delta_SStringArray* array);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineAllocNumericArray
+ */
+delta_EStatus MachineAllocNumericArray(delta_SState* D);
+
+/* ====================================
+ * MachineAllocStringArray
+ */
+delta_EStatus MachineAllocStringArray(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineGetNumericArray
+ */
+delta_EStatus MachineGetNumericArray(delta_SState* D);
+
+/* ====================================
+ * MachineGetStringArray
+ */
+delta_EStatus MachineGetStringArray(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineSetNumericArray
+ */
+delta_EStatus MachineSetNumericArray(delta_SState* D);
+
+/* ====================================
+ * MachineSetStringArray
+ */
+delta_EStatus MachineSetStringArray(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineCallNumeric
+ */
+delta_EStatus MachineCallNumeric(delta_SState* D);
+
+// ------------------------------------------------------------------------- //
+
+
+/* ====================================
  * FormatNumeric
  */
 size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number);
@@ -288,7 +344,17 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineSetStepFor,
 	MachineNextFor,
 	MachineInputNumeric,
-	MachineInputString
+	MachineInputString,
+	MachineAllocNumericArray,
+	MachineAllocStringArray,
+	MachineGetNumericArray,
+	MachineGetStringArray,
+	MachineSetNumericArray,
+	MachineSetStringArray,
+	MachineCallNumeric,
+	OPCODE_CALLS,		// Call String cfunc
+	OPCODE_CALLNR,		// Call Numeric cfunc with return
+	OPCODE_CALLSR,		// Call String cfunc with return
 };
 
 // ------------------------------------------------------------------------- //
@@ -676,7 +742,7 @@ delta_EStatus MachineGetString(delta_SState* D) {
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
-	size_t strSize = 1;
+	size_t strSize = 0;
 	if (var->str)
 		strSize = delta_Strlen(var->str);
 	
@@ -937,9 +1003,6 @@ delta_EStatus MachineSetFor(delta_SState* D) {
 	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
 	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
 
-	if (D->numericHead < 2)
-		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
-
 	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, D->currentLine->str + offset, size);
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
@@ -1101,6 +1164,316 @@ delta_EStatus MachineInputString(delta_SState* D) {
 	var->str = str;
 
 	D->ip += 4;
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * AllocNumericArray
+ */
+delta_EStatus AllocNumericArray(delta_SState* D, delta_SNumericArray* array) {
+	array->array = (delta_TNumber*)DELTA_Alloc(D, sizeof(delta_TNumber) * (array->size));
+	if (array->array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	for (size_t i = 0; i < array->size; ++i)
+		array->array[i] = 0.0f;
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * AllocStringArray
+ */
+delta_EStatus AllocStringArray(delta_SState* D, delta_SStringArray* array) {
+	array->array = (delta_TChar**)DELTA_Alloc(D, sizeof(delta_TChar*) * (array->size));
+	if (array->array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	for (size_t i = 0; i < array->size; ++i) {
+		array->array[i] = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * 2);
+		if (array->array[i] == NULL)
+			return DELTA_ALLOCATOR_ERROR;
+
+		array->array[i][0] = '\0';
+	}
+
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineAllocNumericArray
+ */
+delta_EStatus MachineAllocNumericArray(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead == 0)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	delta_SNumericArray* array = delta_FindOrAddNumericArray(D, D->currentLine->str + offset, size);
+	if (array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (array->array != NULL)
+		return DELTA_MACHINE_REDIM_ERROR;
+
+	delta_TNumber arrSize = D->numericStack[--(D->numericHead)];
+	if (arrSize < 0.0f)
+		return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	array->size = DELTABASIC_MAX((size_t)arrSize, DELTABASIC_ARRAY_MIN_SIZE);
+	delta_EStatus status = AllocNumericArray(D, array);
+	if (status != DELTA_OK)
+		return status;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineAllocStringArray
+ */
+delta_EStatus MachineAllocStringArray(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead == 0)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	delta_SStringArray* array = delta_FindOrAddStringArray(D, D->currentLine->str + offset, size);
+	if (array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (array->array != NULL)
+		return DELTA_MACHINE_REDIM_ERROR;
+
+	delta_TNumber arrSize = D->numericStack[--(D->numericHead)];
+	if (arrSize < 0.0f)
+		return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	array->size = DELTABASIC_MAX((size_t)arrSize, DELTABASIC_ARRAY_MIN_SIZE);
+	delta_EStatus status = AllocStringArray(D, array);
+	if (status != DELTA_OK)
+		return status;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineGetNumericArray
+ */
+delta_EStatus MachineGetNumericArray(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead == 0)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	delta_TNumber index = D->numericStack[(D->numericHead) - 1];
+	if (index < 0.0f)
+		return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	delta_SNumericArray* array = delta_FindOrAddNumericArray(D, D->currentLine->str + offset, size);
+	if (array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (array->array == NULL) {
+		array->size = DELTABASIC_ARRAY_MIN_SIZE;
+		delta_EStatus status = AllocNumericArray(D, array);
+		if (status != DELTA_OK)
+			return status;
+	}
+
+	if ((size_t)index >= array->size)
+		return DELTA_MACHINE_OUT_OF_RANGE;
+
+	D->numericStack[(D->numericHead) - 1] = array->array[(size_t)index];
+	
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineGetStringArray
+ */
+delta_EStatus MachineGetStringArray(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead == 0)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+		
+	if (D->stringHead + 1 == DELTABASIC_STRING_STACK_SIZE)
+		return DELTA_MACHINE_STRING_STACK_OVERFLOW;
+		
+	delta_TNumber index = D->numericStack[--(D->numericHead)];
+	if (index < 0.0f)
+		return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	delta_SStringArray* array = delta_FindOrAddStringArray(D, D->currentLine->str + offset, size);
+	if (array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (array->array == NULL) {
+		array->size = DELTABASIC_ARRAY_MIN_SIZE;
+		delta_EStatus status = AllocStringArray(D, array);
+		if (status != DELTA_OK)
+			return status;
+	}
+
+	if ((size_t)index >= array->size)
+		return DELTA_MACHINE_OUT_OF_RANGE;
+
+	if (array->array[(size_t)index] == NULL) // Just check
+		return DELTA_ALLOCATOR_ERROR;
+
+	size_t strSize = delta_Strlen(array->array[(size_t)index]);
+	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (strSize + 1));
+	if (str == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memcpy(str, array->array[(size_t)index], sizeof(delta_TChar) * strSize);
+	str[strSize] = '\0';
+
+	D->stringStack[(D->stringHead)++] = str;
+	
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineSetNumericArray
+ */
+delta_EStatus MachineSetNumericArray(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead < 2)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	delta_TNumber value = D->numericStack[--(D->numericHead)];
+	delta_TNumber index = D->numericStack[--(D->numericHead)];
+	if (index < 0.0f)
+		return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	delta_SNumericArray* array = delta_FindOrAddNumericArray(D, D->currentLine->str + offset, size);
+	if (array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (array->array == NULL) {
+		array->size = DELTABASIC_ARRAY_MIN_SIZE;
+		delta_EStatus status = AllocNumericArray(D, array);
+		if (status != DELTA_OK)
+			return status;
+	}
+
+	if ((size_t)index >= array->size)
+		return DELTA_MACHINE_OUT_OF_RANGE;
+
+	array->array[(size_t)index] = value;
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * MachineSetStringArray
+ */
+delta_EStatus MachineSetStringArray(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord offset = ((delta_TWord*)(D->bytecode + D->ip))[0];
+	const delta_TWord size   = ((delta_TWord*)(D->bytecode + D->ip))[1];
+
+	if (D->numericHead < 1)
+		return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+	if (D->stringHead < 1)
+		return DELTA_MACHINE_STRING_STACK_UNDERFLOW;
+
+	delta_TNumber index = D->numericStack[--(D->numericHead)];
+	if (index < 0.0f)
+		return DELTA_MACHINE_NEGATIVE_ARGUMENT;
+
+	delta_SStringArray* array = delta_FindOrAddStringArray(D, D->currentLine->str + offset, size);
+	if (array == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	if (array->array == NULL) {
+		array->size = DELTABASIC_ARRAY_MIN_SIZE;
+		delta_EStatus status = AllocStringArray(D, array);
+		if (status != DELTA_OK)
+			return status;
+	}
+
+	if ((size_t)index >= array->size)
+		return DELTA_MACHINE_OUT_OF_RANGE;
+
+	if (array->array[(size_t)index] != NULL) {
+		DELTA_Free(D, array->array[(size_t)index], (delta_Strlen(array->array[(size_t)index]) + 1) * sizeof(delta_TChar));
+	}
+
+	array->array[(size_t)index] = D->stringStack[--(D->stringHead)];
+
+	D->ip += 4;
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * MachineCallNumeric
+ */
+delta_EStatus MachineCallNumeric(delta_SState* D) {
+	D->ip += 1;
+	const delta_TWord index = ((delta_TWord*)(D->bytecode + D->ip))[0];
+
+	D->bIgnoreCFuncReturn = dtrue;
+
+	delta_SCFunction* func = D->cfuncVector.array[index];
+	for (delta_TByte i = 0; i < func->argCount; ++i) {
+		if (((func->argsMask >> i) & 0x01) == DELTA_CFUNC_ARG_STRING) {
+			if (D->stringHead < 1)
+				return DELTA_MACHINE_STRING_STACK_UNDERFLOW;
+
+			--(D->stringHead);
+			D->cfuncArgs[i].string = D->stringStack[D->stringHead];
+		}
+		else {
+			if (D->numericHead < 1)
+				return DELTA_MACHINE_NUMERIC_STACK_UNDERFLOW;
+
+			--(D->numericHead);
+			D->cfuncArgs[i].numeric = D->numericStack[D->numericHead];
+		}
+	}
+
+	D->currentCFunc = func;
+	delta_EStatus status = func->func(D);
+	D->currentCFunc = NULL;
+	for (delta_TByte i = 0; i < func->argCount; ++i) {
+		if (((func->argsMask >> i) & 0x01) == DELTA_CFUNC_ARG_STRING) {
+			DELTA_Free(D, (delta_TChar*)(D->cfuncArgs[i].string), sizeof(delta_TChar) * (delta_Strlen(D->cfuncArgs[i].string) + 1));
+		}
+	}
+
+	if (status != DELTA_OK)
+		return status;
+
+	D->ip += 2;
 	return DELTA_OK;
 }
 

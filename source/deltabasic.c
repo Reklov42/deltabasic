@@ -14,6 +14,7 @@
 
 #include "dlimits.h"
 #include "dstate.h"
+#include "dstring.h"
 #include "dlexer.h"
 #include "dmemory.h"
 #include "dcompiler.h"
@@ -81,6 +82,7 @@ void PrintError(delta_EStatus status) {
 		case DELTA_OUT_OF_LINES_RANGE:	e = "OUT_OF_LINES_RANGE"; break;
 		case DELTA_MACHINE_INPUT_PARSE_ERROR:		e = "MACHINE_INPUT_PARSE_ERROR"; break;
 		case DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA:	e = "MACHINE_NOT_ENOUGH_INPUT_DATA"; break;
+		case DELTA_MACHINE_OUT_OF_RANGE:			e = "MACHINE_OUT_OF_RANGE"; break;
 		default:
 			printf("E:%i", status);
 	}
@@ -90,16 +92,34 @@ void PrintError(delta_EStatus status) {
 
 // ------------------------------------------------------------------------- //
 
+delta_EStatus TestFunc(delta_SState* D) {
+	delta_TNumber a;
+	delta_GetArgNumeric(D, 0, &a);
+
+	delta_TNumber b;
+	delta_GetArgNumeric(D, 1, &b);
+
+	printf("TestFunc %f %f\n", a, b);
+
+	delta_ReturnNumeric(D, a * 100.0f + b);
+	return DELTA_OK;
+}
+
 /* ====================================
  * main
  */
 int main(int argc, char* argv[]) {
+	delta_SState* D = delta_CreateState(Allocator, NULL);
+	PrintUsedMemory();
+
+	delta_ECFuncArgType args[] = { DELTA_CFUNC_ARG_NUMERIC, DELTA_CFUNC_ARG_NUMERIC, DELTA_CFUNC_ARG_NUMERIC };
+	PrintError(delta_RegisterCFunction(D, "TEST", args, 2, TestFunc));
+
 	if (argc == 2) {
 		char* code = LoadFile(argv[1]);
 		if (code == NULL)
 			return -1;
 
-		delta_SState* D = delta_CreateState(Allocator, NULL);
 		if (delta_LoadString(D, code) != DELTA_OK) {
 			printf("can't load code. Abort\n");
 			delta_ReleaseState(D);
@@ -140,9 +160,6 @@ int main(int argc, char* argv[]) {
 		return -1;
 
 	printf("%s\n", code);
-
-	delta_SState* D = delta_CreateState(Allocator, NULL);
-	PrintUsedMemory();
 
 	//delta_CompileSource(D, code);
 	PrintUsedMemory();
@@ -259,18 +276,23 @@ delta_SState* delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncU
 
 	memset(D, 0x00, sizeof(delta_SState));
 
-	D->allocFunction		= allocFunc;
-	D->allocFuncUserData	= allocFuncUserData;
-	D->printFunction		= delta_Print;
-	D->inputFunction		= delta_Input;
+	D->allocFunction			= allocFunc;
+	D->allocFuncUserData		= allocFuncUserData;
+	D->printFunction			= delta_Print;
+	D->inputFunction			= delta_Input;
 
-	D->execLine				= (delta_SLine*)DELTA_Alloc(D, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
+	D->execLine					= (delta_SLine*)DELTA_Alloc(D, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
 	CreateStateAssert(D->execLine == NULL);
-	D->execLine->str		= ((delta_TByte*)D->execLine) + sizeof(delta_SLine);
+	D->execLine->str			= ((delta_TByte*)D->execLine) + sizeof(delta_SLine);
 
-	D->bytecodeSize			= DELTABASIC_EXEC_BYTECODE_SIZE + DELTABASIC_COMPILER_INITIAL_BYTECODE_SIZE;
-	D->bytecode				= (delta_TByte*)DELTA_Alloc(D, sizeof(delta_TByte) * D->bytecodeSize);
+	D->bytecodeSize				= DELTABASIC_EXEC_BYTECODE_SIZE + DELTABASIC_COMPILER_INITIAL_BYTECODE_SIZE;
+	D->bytecode					= (delta_TByte*)DELTA_Alloc(D, sizeof(delta_TByte) * D->bytecodeSize);
 	CreateStateAssert(D->bytecode == NULL);
+
+	D->cfuncVector.allocated 	= DELTABASIC_CFUNC_VECTOR_START_SIZE;
+	D->cfuncVector.size			= 0;
+	D->cfuncVector.array		= (delta_SCFunction**)DELTA_Alloc(D, sizeof(delta_SCFunction*) * D->cfuncVector.allocated);
+	CreateStateAssert(D->cfuncVector.array == NULL);
 
 	return D;
 }
@@ -287,6 +309,13 @@ void delta_ReleaseState(delta_SState* D) {
 
 	DELTA_Free(D, D->execLine, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
 	DELTA_Free(D, D->bytecode, sizeof(delta_TByte) * D->bytecodeSize);
+
+	if (D->cfuncVector.array != NULL) {
+		for (size_t i = 0; i < D->cfuncVector.size; ++i)
+			delta_FreeCFunction(D, D->cfuncVector.array[i]);
+
+		DELTA_Free(D, D->cfuncVector.array, sizeof(delta_SCFunction*) * D->cfuncVector.allocated);
+	}
 
 	{
 		delta_SLine* line = D->head;
@@ -320,6 +349,29 @@ void delta_ReleaseState(delta_SState* D) {
 			nvar = nvar->next; 
 		}
 	}
+
+
+	{
+		delta_SNumericArray* narr = D->numericArrays;
+		while (narr != NULL) {
+			delta_SNumericArray* next = narr->next;
+
+			delta_FreeNumericArray(D, narr);
+
+			narr = narr->next; 
+		}
+	}
+
+	{
+		delta_SStringArray* narr = D->stringArrays;
+		while (narr != NULL) {
+			delta_SStringArray* next = narr->next;
+
+			delta_FreeStringArray(D, narr);
+
+			narr = narr->next; 
+		}
+	}
 	
 	allocFunc(D, sizeof(delta_SState), 0, userData);
 }
@@ -344,15 +396,15 @@ delta_EStatus delta_GetLastLine(delta_SState* D, size_t* line) {
 /* ====================================
  * delta_SetNumeric
  */
-delta_EStatus delta_SetNumeric(delta_SState * D, const char str[], delta_TNumber value) {
+delta_EStatus delta_SetNumeric(delta_SState * D, const char name[], delta_TNumber value) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
-	if (str == NULL)
+	if (name == NULL)
 		return DELTA_STRING_IS_NULL;
 
-	size_t size = strlen(str);
-	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, str, size);
+	size_t size = strlen(name);
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, name, size);
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
@@ -365,15 +417,15 @@ delta_EStatus delta_SetNumeric(delta_SState * D, const char str[], delta_TNumber
 /* ====================================
  * delta_GetNumeric
  */
-delta_EStatus delta_GetNumeric(delta_SState* D, const char str[], delta_TNumber* value) {
+delta_EStatus delta_GetNumeric(delta_SState* D, const char name[], delta_TNumber* value) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
-	if (str == NULL)
+	if (name == NULL)
 		return DELTA_STRING_IS_NULL;
 
-	size_t size = strlen(str);
-	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, str, size);
+	size_t size = strlen(name);
+	delta_SNumericVariable* var = delta_FindOrAddNumericVariable(D, name, size);
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
@@ -386,23 +438,23 @@ delta_EStatus delta_GetNumeric(delta_SState* D, const char str[], delta_TNumber*
 /* ====================================
  * delta_SetString
  */
-delta_EStatus delta_SetString(delta_SState* D, const char str[], const char value[]) {
+delta_EStatus delta_SetString(delta_SState* D, const char name[], const char value[]) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
-	if (str == NULL)
+	if (name == NULL)
 		return DELTA_STRING_IS_NULL;
 
 	size_t valueSize = strlen(value);
 	delta_TChar* buffer = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (valueSize + 1));
-	if (str == NULL)
+	if (name == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
 	memcpy(buffer, value, sizeof(delta_TChar) * valueSize);
 	buffer[valueSize] = '\0';
 
-	size_t size = strlen(str);
-	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, str, size);
+	size_t size = strlen(name);
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, name, size);
 	if (var == NULL) {
 		DELTA_Free(D, buffer, sizeof(delta_TChar) * (valueSize + 1));
 		return DELTA_ALLOCATOR_ERROR;
@@ -420,20 +472,126 @@ delta_EStatus delta_SetString(delta_SState* D, const char str[], const char valu
 /* ====================================
  * delta_GetString
  */
-delta_EStatus delta_GetString(delta_SState* D, const char str[], const char* value[]) {
+delta_EStatus delta_GetString(delta_SState* D, const char name[], const char* value[]) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
-	if (str == NULL)
+	if (name == NULL)
 		return DELTA_STRING_IS_NULL;
 
-	size_t size = strlen(str);
-	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, str, size);
+	size_t size = strlen(name);
+	delta_SStringVariable* var = delta_FindOrAddStringVariable(D, name, size);
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
 	if (value != NULL)
 		*value = var->str;
+
+	return DELTA_OK;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_GetArgNumeric
+ */
+delta_EStatus delta_GetArgNumeric(delta_SState* D, size_t index, delta_TNumber* value) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (D->currentCFunc == NULL)
+		return DELTA_FUNC_CALLED_OUTSIDE_CFUNC;
+	
+	if (index > D->currentCFunc->argCount)
+		return 	DELTA_ARG_OUT_OF_RANGE;
+
+	if (((D->currentCFunc->argsMask >> index) & 0x01) != DELTA_CFUNC_ARG_NUMERIC)
+		return DELTA_CFUNC_WRONG_ARG_TYPE;
+
+	if (value != NULL)
+		*value = D->cfuncArgs[index].numeric;
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * delta_ReturnNumeric
+ */
+delta_EStatus delta_ReturnNumeric(delta_SState* D, delta_TNumber value) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (D->currentCFunc == NULL)
+		return DELTA_FUNC_CALLED_OUTSIDE_CFUNC;
+
+	if (D->currentCFunc->retType != DELTA_CFUNC_ARG_NUMERIC)
+		return DELTA_CFUNC_WRONG_RETURN_TYPE;
+
+	D->cfuncReturn.numeric = value;
+
+	return DELTA_OK;
+}
+
+/* ====================================
+ * delta_RegisterCFunction
+ */
+delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_TCFunction func) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (name == NULL)
+		return DELTA_STRING_IS_NULL;
+
+	if (argsType == NULL)
+		return DELTA_ARG_TYPE_IS_NULL;
+
+	if (argCount > DELTABASIC_CFUNC_MAX_ARGS)
+		return 	DELTA_ARG_OUT_OF_RANGE;
+
+	if (func == NULL)
+		return DELTA_FUNC_IS_NULL;
+
+	size_t size = strlen(name);
+	if (delta_FindCFunction(D, name, size, NULL) == dtrue)
+		return DELTA_CFUNC_NAME_EXISTS;
+
+	const size_t blockSize = sizeof(delta_SCFunction) + sizeof(delta_TChar) * (size + 1);
+	delta_SCFunction* funcData = (delta_SCFunction*)DELTA_Alloc(D, blockSize);
+	if (funcData == NULL)
+		return DELTA_ALLOCATOR_ERROR;
+
+	memset(funcData, 0x00, blockSize);
+	funcData->name = ((delta_TByte*)funcData) + sizeof(delta_SCFunction);
+	memcpy(funcData->name, name, size);
+
+	funcData->func = func;
+	funcData->argCount = argCount;
+	funcData->retType = argsType[argCount];
+	for (size_t i = 0; i < argCount; ++i) {
+		if (argsType[argCount] == DELTA_CFUNC_ARG_STRING)
+			funcData->argsMask |= 1 << i;
+	}
+
+	if (D->cfuncVector.size + 1 >= D->cfuncVector.allocated) {
+		const size_t newSize = D->cfuncVector.allocated * 2;
+
+		D->cfuncVector.array = DELTA_Realloc(
+			D,
+			D->cfuncVector.array,
+			sizeof(delta_SCFunction*) * D->cfuncVector.allocated,
+			sizeof(delta_SCFunction*) * newSize
+		);
+
+		if (D->cfuncVector.array == NULL) {
+			delta_FreeCFunction(D, funcData);
+			return DELTA_ALLOCATOR_ERROR;
+		}
+
+		D->cfuncVector.allocated = newSize;
+	}
+
+	D->cfuncVector.array[D->cfuncVector.size] = funcData;
+	++(D->cfuncVector.size);
 
 	return DELTA_OK;
 }

@@ -16,6 +16,7 @@
 #define DELTABASIC_UNUSED(rv)								((void)(rv)) // to avoid warnings
 
 #define DELTABASIC_MIN(a, b)								(((a) > (b)) ? (b) : (a))
+#define DELTABASIC_MAX(a, b)								(((a) < (b)) ? (b) : (a))
 
 #define dtrue												1
 #define dfalse												0
@@ -27,5 +28,9 @@ typedef uint16_t											delta_TWord;
 typedef uint32_t											delta_TDWord;
 
 typedef long												delta_TInteger;
+
+typedef delta_TByte											delta_TCFuncArgMask;
+
+#define DELTABASIC_CFUNC_MAX_ARGS							(sizeof(delta_TCFuncArgMask) * 8)
 
 #endif /* !__DELTABASIC_LIMITS_H__ */

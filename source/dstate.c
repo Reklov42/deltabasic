@@ -214,13 +214,115 @@ delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delt
 /* ====================================
  * delta_FreeStringVariable
  */
-void delta_FreeStringVariable(delta_SState *D, delta_SStringVariable *variable) {
+void delta_FreeStringVariable(delta_SState* D, delta_SStringVariable* variable) {
 	if (variable->str != NULL) {
 		DELTA_Free(D, variable->str, (delta_Strlen(variable->str) + 1) * sizeof(delta_TChar));
 	}
 
 	DELTA_Free(D, variable, sizeof(delta_SStringVariable) + (delta_Strlen(variable->name) + 1) * sizeof(delta_TChar));
 }
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddNumericArray
+ * 
+ * size - size of name in string with a null-terminal
+ */
+delta_SNumericArray* delta_FindOrAddNumericArray(delta_SState* D, const delta_TChar str[], uint16_t size) {
+	if (D == NULL)
+		return NULL;
+
+	delta_SNumericArray* var = D->numericArrays;
+	while (var != NULL) {
+		if (delta_Strncmp(var->name, str, size) == 0)
+			return var;
+
+		var = var->next;
+	}
+
+	const size_t blockSize = sizeof(delta_SNumericArray) + sizeof(delta_TChar) * (size + 1);
+	var = (delta_SNumericArray*)DELTA_Alloc(D, blockSize);
+	if (var == NULL)
+		return NULL;
+
+	memset(var, 0x00, blockSize);
+	var->name = ((delta_TByte*)var) + sizeof(delta_SNumericArray);
+	memcpy(var->name, str, size);
+
+	var->next = D->numericArrays;
+	D->numericArrays = var;
+
+	return var;
+}
+
+/* ====================================
+ * delta_FreeNumericArray
+ *
+ * Only free the array. Doesn't fix the list
+ */
+void				delta_FreeNumericArray(delta_SState* D, delta_SNumericArray* array) {
+	if (array->array != NULL) {
+		DELTA_Free(D, array->array, sizeof(delta_TNumber) * (array->size));
+	}
+
+	DELTA_Free(D, array, sizeof(delta_SNumericArray) + (delta_Strlen(array->name) + 1) * sizeof(delta_TChar));
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindOrAddStringArray
+ * 
+ * size - size of name in string with a null-terminal
+ */
+delta_SStringArray* delta_FindOrAddStringArray(delta_SState* D, const delta_TChar str[], uint16_t size) {
+	if (D == NULL)
+		return NULL;
+
+	delta_SStringArray* var = D->stringArrays;
+	while (var != NULL) {
+		if (delta_Strncmp(var->name, str, size) == 0)
+			return var;
+
+		var = var->next;
+	}
+
+	const size_t blockSize = sizeof(delta_SStringArray) + sizeof(delta_TChar) * (size + 1);
+	var = (delta_SStringArray*)DELTA_Alloc(D, blockSize);
+	if (var == NULL)
+		return NULL;
+
+	memset(var, 0x00, blockSize);
+	var->name = ((delta_TByte*)var) + sizeof(delta_SStringArray);
+	memcpy(var->name, str, size);
+
+	var->next = D->stringArrays;
+	D->stringArrays = var;
+
+	return var;
+}
+
+/* ====================================
+ * delta_FreeStringArray
+ *
+ * Only free the array. Doesn't fix the list
+ */
+void				delta_FreeStringArray(delta_SState* D, delta_SStringArray* array) {
+	if (array->array != NULL) {
+		for (size_t i = 0; i < array->size; ++i) {
+			if (array->array[i] != NULL) {
+				DELTA_Free(D, array->array[i], (delta_Strlen(array->array[i]) + 1) * sizeof(delta_TChar));
+			}
+		}
+
+		DELTA_Free(D, array->array, sizeof(delta_TChar*) * (array->size));
+	}
+
+	DELTA_Free(D, array, sizeof(delta_SStringArray) + (delta_Strlen(array->name) + 1) * sizeof(delta_TChar));
+}
+
+// ------------------------------------------------------------------------- //
 
 /* ====================================
  * delta_FreeStringVariable
@@ -231,4 +333,29 @@ void delta_FreeStringStack(delta_SState* D) {
 	}
 
 	D->stringHead = 0;
+}
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * delta_FindCFunction
+ */
+delta_TBool delta_FindCFunction(delta_SState* D, const delta_TChar name[], uint16_t size, size_t* index) {
+	for (size_t i = 0; i < D->cfuncVector.size; ++i) {
+		if (delta_Strncmp(name, D->cfuncVector.array[i]->name, size) == 0) {
+			if (index != NULL)
+				*index = i;
+
+			return dtrue;
+		}
+	}
+
+	return dfalse;
+}
+
+/* ====================================
+ * delta_FreeCFunction
+ */
+void delta_FreeCFunction(delta_SState* D, delta_SCFunction* function) {
+	DELTA_Free(D, function, sizeof(delta_SCFunction) + (delta_Strlen(function->name) + 1) * sizeof(delta_TChar));
 }
