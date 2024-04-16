@@ -29,30 +29,33 @@
  */
 char* LoadFile(const char path[]);
 
-static size_t usedMemory = 0;
-void PrintUsedMemory() {
-	printf("Used: %zu (%.2f)\n", usedMemory, ((float)usedMemory) / 1024.0f);
-}
+/* ====================================
+ * g_usedMemory
+ */
+static size_t g_usedMemory = 0;
 
+/* ====================================
+ * Allocator
+ */
 void* Allocator(void* ptr, size_t currentSize, size_t newSize, void* userData) {
 	DELTABASIC_UNUSED(userData);
 	DELTABASIC_UNUSED(currentSize);
 
 	if (newSize == 0) {
-		usedMemory -= currentSize;
+		g_usedMemory -= currentSize;
 		free(ptr);
 		return NULL;
 	}
 	
 	if (currentSize == 0) {
-		usedMemory += newSize;
+		g_usedMemory += newSize;
 		return malloc(newSize);
 	}
 	else {
 		if (currentSize > newSize)
-			usedMemory -= currentSize - newSize;
+			g_usedMemory -= currentSize - newSize;
 		else
-			usedMemory += newSize - currentSize;
+			g_usedMemory += newSize - currentSize;
 
 		return realloc(ptr, newSize);
 	}
@@ -68,52 +71,13 @@ int delta_Print(const delta_TChar str[], size_t size);
  */
 int delta_Input(delta_TChar* buffer, size_t size);
 
-/* ====================================
- * PrintError
- */
-void PrintError(delta_EStatus status) {
-	const char* e = "";
-
-	switch (status) {
-		case DELTA_OK:					e = "OK"; break;
-		case DELTA_END:					e = "END"; break;
-		case DELTA_ALLOCATOR_ERROR:		e = "ALLOCATOR_ERROR"; break;
-		case DELTA_SYNTAX_ERROR:		e = "SYNTAX_ERROR"; break;
-		case DELTA_OUT_OF_LINES_RANGE:	e = "OUT_OF_LINES_RANGE"; break;
-		case DELTA_MACHINE_INPUT_PARSE_ERROR:		e = "MACHINE_INPUT_PARSE_ERROR"; break;
-		case DELTA_MACHINE_NOT_ENOUGH_INPUT_DATA:	e = "MACHINE_NOT_ENOUGH_INPUT_DATA"; break;
-		case DELTA_MACHINE_OUT_OF_RANGE:			e = "MACHINE_OUT_OF_RANGE"; break;
-		default:
-			printf("E:%i", status);
-	}
-
-	printf("%s\n", e);
-}
-
 // ------------------------------------------------------------------------- //
-
-delta_EStatus TestFunc(delta_SState* D) {
-	delta_TNumber a;
-	delta_GetArgNumeric(D, 0, &a);
-
-	delta_TNumber b;
-	delta_GetArgNumeric(D, 1, &b);
-
-	printf("TestFunc %f %f\n", a, b);
-
-	delta_ReturnNumeric(D, a * 100.0f + b);
-	return DELTA_OK;
-}
 
 /* ====================================
  * main
  */
 int main(int argc, char* argv[]) {
 	delta_SState* D = delta_CreateState(Allocator, NULL);
-	PrintUsedMemory();
-
-	delta_ECFuncArgType args[] = { DELTA_CFUNC_ARG_NUMERIC, DELTA_CFUNC_ARG_NUMERIC, DELTA_CFUNC_ARG_NUMERIC };
-	PrintError(delta_RegisterCFunction(D, "TEST", args, 2, TestFunc));
 
 	if (argc == 2) {
 		char* code = LoadFile(argv[1]);
@@ -145,8 +109,6 @@ int main(int argc, char* argv[]) {
 			if (status == DELTA_END)
 				return 0;
 
-			PrintError(status);
-
 			return -1;
 		}
 
@@ -155,47 +117,28 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	char* code = LoadFile("test.bas");
-	if (code == NULL)
-		return -1;
-
-	printf("%s\n", code);
-
-	//delta_CompileSource(D, code);
-	PrintUsedMemory();
-
-	delta_SetNumeric(D, "UMEM", (delta_TNumber)usedMemory);
+	delta_SetNumeric(D, "UMEM", (delta_TNumber)g_usedMemory);
 
 	char buffer[256];
 	while (1) {
 		printf("> ");
 		fgets(buffer, 256, stdin);
 
-		delta_SetNumeric(D, "UMEM", (delta_TNumber)usedMemory);
+		delta_SetNumeric(D, "UMEM", (delta_TNumber)g_usedMemory);
 		delta_EStatus status = delta_Execute(D, buffer);
 		if (status != DELTA_OK) {
-			PrintError(status);
-		}
-
-		/*
-		if (delta_Compile(D) == DELTA_OK) {
-			for (size_t i = 0; i < D->bytecodeSize; ++i) {
-				printf("%2X ", D->bytecode[i]);
-				if (i % 15 == 0)
-					printf("\n");
+			if (status == DELTA_END) {
+				printf("READY\n");
 			}
-		}*/
-
-		/*
-		for (size_t i = 0; i < DELTABASIC_EXEC_BYTECODE_SIZE; ++i) {
-			printf("%02X ", D->bytecode[i]);
-			if (i % 16 == 15)
-				printf("\n");
-		}*/
+			else {
+				size_t line;
+				delta_GetLastLine(D, &line);
+				printf("ERROR: %zu IN LINE %zu\n", status, line);
+			}
+		}
 	}
 
 	delta_ReleaseState(D);
-	PrintUsedMemory();
 
 	return 0;
 }
@@ -379,6 +322,23 @@ void delta_ReleaseState(delta_SState* D) {
 // ------------------------------------------------------------------------- //
 
 /* ====================================
+ * delta_Run
+ */
+delta_EStatus delta_Run(delta_SState* D) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (D->bCompiled == dtrue) {
+		D->ip			= DELTABASIC_EXEC_BYTECODE_SIZE;
+		D->currentLine	= D->head;
+
+		return DELTA_OK;
+	}
+
+	return delta_Compile(D);
+}
+
+/* ====================================
  * delta_GetLastLine
  */
 delta_EStatus delta_GetLastLine(delta_SState* D, size_t* line) {
@@ -515,6 +475,28 @@ delta_EStatus delta_GetArgNumeric(delta_SState* D, size_t index, delta_TNumber* 
 }
 
 /* ====================================
+ * delta_GetArgString
+ */
+delta_EStatus delta_GetArgString(delta_SState* D, size_t index, const char* value[]) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (D->currentCFunc == NULL)
+		return DELTA_FUNC_CALLED_OUTSIDE_CFUNC;
+	
+	if (index > D->currentCFunc->argCount)
+		return 	DELTA_ARG_OUT_OF_RANGE;
+
+	if (((D->currentCFunc->argsMask >> index) & 0x01) != DELTA_CFUNC_ARG_STRING)
+		return DELTA_CFUNC_WRONG_ARG_TYPE;
+
+	if (value != NULL)
+		*value = D->cfuncArgs[index].string;
+
+	return DELTA_OK;
+}
+
+/* ====================================
  * delta_ReturnNumeric
  */
 delta_EStatus delta_ReturnNumeric(delta_SState* D, delta_TNumber value) {
@@ -533,16 +515,48 @@ delta_EStatus delta_ReturnNumeric(delta_SState* D, delta_TNumber value) {
 }
 
 /* ====================================
+ * delta_ReturnString
+ */
+delta_EStatus delta_ReturnString(delta_SState* D, const char value[]) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
+	if (D->currentCFunc == NULL)
+		return DELTA_FUNC_CALLED_OUTSIDE_CFUNC;
+
+	if (D->currentCFunc->retType != DELTA_CFUNC_ARG_STRING)
+		return DELTA_CFUNC_WRONG_RETURN_TYPE;
+
+	if (D->bIgnoreCFuncReturn == dfalse) {
+		if (D->cfuncReturn.string != NULL) {
+			DELTA_Free(D, (delta_TChar*)(D->cfuncReturn.string), sizeof(delta_TChar) * (delta_Strlen(D->cfuncReturn.string) + 1));
+			D->cfuncReturn.string = NULL;
+		}
+
+		size_t size = delta_Strlen(value);
+		delta_TChar* string = DELTA_Alloc(D, sizeof(delta_TChar) * (size + 1));
+		if (string == NULL)
+			return DELTA_ALLOCATOR_ERROR;
+
+		memcpy(string, value, sizeof(delta_TChar) * size);
+		string[size] = '\0';
+		D->cfuncReturn.string = string;
+	}
+
+	return DELTA_OK;
+}
+
+/* ====================================
  * delta_RegisterCFunction
  */
-delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_TCFunction func) {
+delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_ECFuncArgType returnType, delta_TCFunction func) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
 	if (name == NULL)
 		return DELTA_STRING_IS_NULL;
 
-	if (argsType == NULL)
+	if ((argCount != 0) && (argsType == NULL))
 		return DELTA_ARG_TYPE_IS_NULL;
 
 	if (argCount > DELTABASIC_CFUNC_MAX_ARGS)
@@ -566,9 +580,9 @@ delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_
 
 	funcData->func = func;
 	funcData->argCount = argCount;
-	funcData->retType = argsType[argCount];
+	funcData->retType = returnType;
 	for (size_t i = 0; i < argCount; ++i) {
-		if (argsType[argCount] == DELTA_CFUNC_ARG_STRING)
+		if (argsType[i] == DELTA_CFUNC_ARG_STRING)
 			funcData->argsMask |= 1 << i;
 	}
 
@@ -735,9 +749,26 @@ delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
  * delta_SetPrintFunction
  */
 delta_EStatus delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+
 	if (func == NULL)
-		return 0;
+		return DELTA_FUNC_IS_NULL;
 
 	D->printFunction = func;
+	return DELTA_OK;
+}
+
+/* ====================================
+ * delta_SetInputFunction
+ */
+delta_EStatus delta_SetInputFunction(delta_SState* D, delta_TInputFunction func) {
+	if (D == NULL)
+		return DELTA_STATE_IS_NULL;
+		
+	if (func == NULL)
+		return DELTA_FUNC_IS_NULL;
+
+	D->inputFunction = func;
 	return DELTA_OK;
 }

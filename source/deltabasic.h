@@ -96,6 +96,11 @@ void				delta_ReleaseState(delta_SState* D);
 //
 
 /* ====================================
+ * delta_Run
+ */
+delta_EStatus		delta_Run(delta_SState* D);
+
+/* ====================================
  * delta_GotoLine
  */
 delta_EStatus		delta_GotoLine(delta_SState* D, size_t line);
@@ -106,11 +111,6 @@ delta_EStatus		delta_GotoLine(delta_SState* D, size_t line);
  * Delete all lines, variables and clear bytecode buffer
  */
 delta_EStatus		delta_New(delta_SState* D);
-
-/* ====================================
- * delta_Break
- */
-delta_EStatus		delta_Break(delta_SState* D);
 
 /* ====================================
  * delta_GetLastLine
@@ -178,7 +178,7 @@ delta_EStatus		delta_ReturnNumeric(delta_SState* D, delta_TNumber value);
 /* ====================================
  * delta_ReturnString
  */
-delta_EStatus		delta_ReturnString(delta_SState* D, const char* value[]);
+delta_EStatus		delta_ReturnString(delta_SState* D, const char value[]);
 
 /* ====================================
  * delta_TCFunction
@@ -187,10 +187,8 @@ typedef delta_EStatus (*delta_TCFunction)(delta_SState* D);
 
 /* ====================================
  * delta_RegisterCFunction
- *
- * The size of argsType must be argCount + 1. The last argsType is return type
  */
-delta_EStatus		delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_TCFunction func);
+delta_EStatus		delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_ECFuncArgType returnType, delta_TCFunction func);
 
 // ------------------------------------------------------------------------- //
 //

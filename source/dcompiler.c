@@ -164,6 +164,42 @@ delta_EStatus delta_CompileLine(delta_SState* D, delta_SLine* L, delta_TChar* st
 }
 
 /* ====================================
+ * CompileCall
+ */
+delta_EStatus CompileCall(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC, size_t index, delta_ECFuncArgType returnType, delta_TBool bReturn) {
+	delta_SCFunction* func = D->cfuncVector.array[index];
+	if (func->retType != returnType)
+		return DELTA_SYNTAX_ERROR;
+
+	for (delta_TByte i = 0; i < func->argCount; ++i) {
+		if (i != 0) {
+			if ((L->type != LEXEM_SYMBOL) || (L->symbol != ','))
+				return DELTA_SYNTAX_ERROR;
+		}
+
+		delta_EMathStatus math = MATH_OK_NUMERIC;
+		if ((((func->argsMask) >> i) & 0x01) == DELTA_CFUNC_ARG_STRING)
+			math = MATH_OK_STRING;
+		
+		MathStatusAssert(CompileMath(D, L, BC, math), math);
+	}
+
+	if (func->argCount == 0) {
+		CompileInstructionParseAssert();
+	}
+
+	if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
+		return DELTA_SYNTAX_ERROR;
+
+	PushAssert(PushBytecodeByte(D, BC, (bReturn == dtrue) ? OPCODE_CALLR : OPCODE_CALL));
+	PushAssert(PushBytecodeWord(D, BC, index));
+
+	CompileInstructionParseAssert();
+
+	return DELTA_OK;
+}
+
+/* ====================================
  * CompileInstruction
  */
 delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC) {
@@ -413,6 +449,9 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 		else if (L->op == OP_STOP) {
 			PushAssert(PushBytecodeByte(D, BC, OPCODE_STOP));
 		}
+		else if (L->op == OP_RUN) {
+			PushAssert(PushBytecodeByte(D, BC, OPCODE_RUN));
+		}
 		else
 			return DELTA_SYNTAX_ERROR;
 	}
@@ -436,22 +475,28 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 				PushAssert(PushBytecodeWord(D, BC, name.offset));
 				PushAssert(PushBytecodeWord(D, BC, name.size));
 			}
-			else if (L->symbol == '(') { // String Function call
-				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
+			else if (L->symbol == '(') { // String Function call or String Array
+				size_t index;
+				if (delta_FindCFunction(D, L->buffer + name.offset, name.size, &index) == dtrue) { // String Function call
+					StatusAssert(CompileCall(D, L, BC, index, DELTA_CFUNC_ARG_STRING, dfalse));
+				}
+				else { // String Array
+					MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
 
-				if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
-					return DELTA_SYNTAX_ERROR;
+					if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
+						return DELTA_SYNTAX_ERROR;
 
-				CompileInstructionParseAssert();
+					CompileInstructionParseAssert();
 
-				if ((L->type != LEXEM_SYMBOL) || (L->symbol != '='))
-					return DELTA_SYNTAX_ERROR;
+					if ((L->type != LEXEM_SYMBOL) || (L->symbol != '='))
+						return DELTA_SYNTAX_ERROR;
 
-				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_STRING), MATH_OK_STRING);
+					MathStatusAssert(CompileMath(D, L, BC, MATH_OK_STRING), MATH_OK_STRING);
 
-				PushAssert(PushBytecodeByte(D, BC, OPCODE_SETIS));
-				PushAssert(PushBytecodeWord(D, BC, name.offset));
-				PushAssert(PushBytecodeWord(D, BC, name.size));
+					PushAssert(PushBytecodeByte(D, BC, OPCODE_SETIS));
+					PushAssert(PushBytecodeWord(D, BC, name.offset));
+					PushAssert(PushBytecodeWord(D, BC, name.size));
+				}
 			}
 			else
 				return DELTA_SYNTAX_ERROR;
@@ -466,27 +511,7 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 		else if (L->symbol == '(') { // Numeric Function call or Numeric Array
 			size_t index;
 			if (delta_FindCFunction(D, L->buffer + name.offset, name.size, &index) == dtrue) { // Numeric Function call
-				delta_SCFunction* func = D->cfuncVector.array[index];
-				for (delta_TByte i = 0; i < func->argCount; ++i) {
-					if (i != 0) {
-						if ((L->type != LEXEM_SYMBOL) || (L->symbol != ','))
-							return DELTA_SYNTAX_ERROR;
-					}
-
-					delta_EMathStatus math = MATH_OK_NUMERIC;
-					if ((func->argsMask >> i) == DELTA_CFUNC_ARG_STRING)
-						math = MATH_OK_STRING;
-					
-					MathStatusAssert(CompileMath(D, L, BC, math), math);
-				}
-
-				if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
-					return DELTA_SYNTAX_ERROR;
-
-				PushAssert(PushBytecodeByte(D, BC, OPCODE_CALLN));
-				PushAssert(PushBytecodeWord(D, BC, index));
-
-				CompileInstructionParseAssert();
+				StatusAssert(CompileCall(D, L, BC, index, DELTA_CFUNC_ARG_NUMERIC, dfalse));
 			}
 			else { // Numeric Array
 				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
@@ -613,15 +638,21 @@ delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_
 
 			const delta_TChar* head = L->head;
 			ParseAssert();
-			if ((L->type == LEXEM_SYMBOL) && (L->symbol == '(')) { // Array
-				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
+			if ((L->type == LEXEM_SYMBOL) && (L->symbol == '(')) { // Function or Array
+				size_t index;
+				if (delta_FindCFunction(D, L->buffer + str.offset, str.size, &index) == dtrue) { // Function
+					StatusAssert(CompileCall(D, L, BC, index, DELTA_CFUNC_ARG_STRING, dtrue));
+				}
+				else {
+					MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
 
-				if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
-					return DELTA_SYNTAX_ERROR;
+					if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
+						return DELTA_SYNTAX_ERROR;
 
-				PushAssert(PushBytecodeByte(D, BC, OPCODE_GETIS));
-				PushAssert(PushBytecodeWord(D, BC, str.offset));
-				PushAssert(PushBytecodeWord(D, BC, str.size));
+					PushAssert(PushBytecodeByte(D, BC, OPCODE_GETIS));
+					PushAssert(PushBytecodeWord(D, BC, str.offset));
+					PushAssert(PushBytecodeWord(D, BC, str.size));
+				}
 			}
 			else {
 				L->head = head;
@@ -634,15 +665,21 @@ delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_
 		else {
 			const delta_TChar* head = L->head;
 			ParseAssert();
-			if ((L->type == LEXEM_SYMBOL) && (L->symbol == '(')) { // Array
-				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
+			if ((L->type == LEXEM_SYMBOL) && (L->symbol == '(')) { // Function or Array
+				size_t index;
+				if (delta_FindCFunction(D, L->buffer + str.offset, str.size, &index) == dtrue) { // Function
+					StatusAssert(CompileCall(D, L, BC, index, DELTA_CFUNC_ARG_NUMERIC, dtrue));
+				}
+				else {
+					MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
 
-				if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
-					return DELTA_SYNTAX_ERROR;
+					if ((L->type != LEXEM_SYMBOL) || (L->symbol != ')'))
+						return DELTA_SYNTAX_ERROR;
 
-				PushAssert(PushBytecodeByte(D, BC, OPCODE_GETIN));
-				PushAssert(PushBytecodeWord(D, BC, str.offset));
-				PushAssert(PushBytecodeWord(D, BC, str.size));
+					PushAssert(PushBytecodeByte(D, BC, OPCODE_GETIN));
+					PushAssert(PushBytecodeWord(D, BC, str.offset));
+					PushAssert(PushBytecodeWord(D, BC, str.size));
+				}
 			}
 			else {
 				L->head = head;

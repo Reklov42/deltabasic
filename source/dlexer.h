@@ -40,9 +40,9 @@ typedef enum {
 	OP_NEXT,
 	OP_PRINT,
 	OP_RETURN,
+	OP_RUN,
 	OP_STEP,
 	OP_STOP,
-//	OP_TAB,
 	OP_THEN,
 	OP_TO,
 } delta_EOp;

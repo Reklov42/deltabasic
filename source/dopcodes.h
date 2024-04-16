@@ -46,7 +46,7 @@ typedef enum {
 	OPCODE_GET,		// Greater or Equal To
 	OPCODE_NEG,		//
 	OPCODE_STOP,
-	OPCODE_TAB,
+	OPCODE_RUN,
 	OPCODE_GOSUB,
 	OPCODE_RETURN,
 	OPCODE_JNLNZ,		// Jump to next line if not zero
@@ -61,12 +61,10 @@ typedef enum {
 	OPCODE_GETIS,		// Get indexed String
 	OPCODE_SETIN,		// Set indexed Number
 	OPCODE_SETIS,		// Set indexed String
-	OPCODE_CALLN,		// Call Numeric cfunc
-	OPCODE_CALLS,		// Call String cfunc
-	OPCODE_CALLNR,		// Call Numeric cfunc with return
-	OPCODE_CALLSR,		// Call String cfunc with return
+	OPCODE_CALL,		// Call cfunc
+	OPCODE_CALLR,		// Call with return
 	OPCODE_COUNT,
-	OPCODE_LAST = OPCODE_CALLSR,
+	OPCODE_LAST = OPCODE_CALLR,
 } delta_EOpcodes;
 
 #endif /* !__DELTABASIC_OPCODES_H__ */

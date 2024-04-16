@@ -30,9 +30,9 @@ static const delta_TChar* op_table[] = {
 	"NEXT",
 	"PRINT",
 	"RETURN",
+	"RUN",
 	"STEP",
 	"STOP",
-//	"TAB",
 	"THEN",
 	"TO"
 };
