@@ -13,9 +13,6 @@
 
 #include "deltabasic_config.h"
 
-#define DELTABASIC_TYPE_NUMBER								0x01
-#define DELTABASIC_TYPE_STRING								0x02
-
 					//										//										//
 typedef DELTABASIC_CONFIG_NUMBER							delta_TNumber;
 typedef DELTABASIC_CONFIG_CHAR								delta_TChar;

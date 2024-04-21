@@ -1,6 +1,6 @@
 # DELTA BASIC
 
-The implementation of the Minimal BASIC for my  "old school" terminal web page
+The implementation of the Minimal BASIC for my "old school" terminal web page
 
 ## ΔBASIC Keywolds
 

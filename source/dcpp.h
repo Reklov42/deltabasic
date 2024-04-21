@@ -1,6 +1,6 @@
 //
 
-//	| File:			dmemory.c
+//	| File:			dcpp.c
 //	| Description:	DeltaBasic header files for C++
 //	| Created:		21 apr 2024
 //	| Author:		Reklov
