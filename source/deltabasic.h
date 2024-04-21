@@ -252,5 +252,4 @@ typedef int (*delta_TInputFunction)(delta_TChar* buffer, size_t size);
  */
 delta_EStatus		delta_SetInputFunction(delta_SState* D, delta_TInputFunction func);
 
-
 #endif /* !__DELTABASIC_H__ */

@@ -1,5 +1,5 @@
 {
-    "version": "1.0.0",
+    "version": "2.0.0",
     "scanPath": "source/",
     "buildPath": "build/",
     "tmpPath": "build/tmp/",
@@ -12,16 +12,49 @@
         "source/dstring.c",
         "source/dmachine.c"
     ],
-    "compile": {
+    "headers": [],
+    "builds": {
         "default": {
-            "compilerExec": "gcc -c -O2 -std=gnu99 -lm -I source/",
-            "linkerExec": "gcc -O2 -std=gnu99 -lm -I source/",
+            "type": "exec",
+            "includePaths": [
+                "source/"
+            ],
+            "libPaths": [],
+            "defines": [],
+            "compiler": "gcc",
+            "compilerFlags": "-O2 -Wall -std=gnu99",
+            "linker": "gcc",
+            "linkerFlags": "-O2 -Wall -std=gnu99 -lm",
+            "staticLibs": [],
             "outname": "dbas"
         },
         "debug": {
-            "compilerExec": "gcc -g -c -std=gnu99 -lm -I source/",
-            "linkerExec": "gcc -g -std=gnu99 -lm -I source/",
+            "type": "exec",
+            "includePaths": [
+                "source/"
+            ],
+            "libPaths": [],
+            "defines": [],
+            "compiler": "gcc",
+            "compilerFlags": "-O2 -g -std=gnu99 -lm",
+            "linker": "gcc",
+            "linkerFlags": "-O2 -g -std=gnu99 -lm",
+            "staticLibs": [],
             "outname": "dbas_debug"
+        },
+        "lib": {
+            "type": "lib",
+            "includePaths": [
+                "source/"
+            ],
+            "libPaths": [],
+            "defines": [
+                "__DELTABASIC_LIB__"
+            ],
+            "compiler": "gcc",
+            "compilerFlags": "-O2 -std=gnu99",
+            "staticLibs": [],
+            "outname": "libdbas.a"
         }
     }
 }
