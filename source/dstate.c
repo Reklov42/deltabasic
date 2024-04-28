@@ -31,7 +31,7 @@ delta_TBool delta_InsertLine(delta_SState* D, size_t lineNumber, const delta_TCh
 
 	memset(line, 0x00, blockSize);
 	line->line = lineNumber;
-	line->str = ((delta_TByte*)line) + sizeof(delta_SLine);
+	line->str = (char*)(((delta_TByte*)line) + sizeof(delta_SLine));
 	memcpy(line->str, str, strSize);
 
 	if (D->head == NULL) { // List is empty
@@ -163,7 +163,7 @@ delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, const de
 		return NULL;
 
 	memset(var, 0x00, blockSize);
-	var->name = ((delta_TByte*)var) + sizeof(delta_SNumericVariable);
+	var->name = (delta_TChar*)(((delta_TByte*)var) + sizeof(delta_SNumericVariable));
 	memcpy(var->name, str, size);
 
 	var->next = D->numericValiables;
@@ -202,7 +202,7 @@ delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delt
 		return NULL;
 
 	memset(var, 0x00, blockSize);
-	var->name = ((delta_TByte*)var) + sizeof(delta_SStringVariable);
+	var->name = (delta_TChar*)(((delta_TByte*)var) + sizeof(delta_SStringVariable));
 	memcpy(var->name, str, size);
 
 	var->next = D->stringVariables;
@@ -247,7 +247,7 @@ delta_SNumericArray* delta_FindOrAddNumericArray(delta_SState* D, const delta_TC
 		return NULL;
 
 	memset(var, 0x00, blockSize);
-	var->name = ((delta_TByte*)var) + sizeof(delta_SNumericArray);
+	var->name = (delta_TChar*)(((delta_TByte*)var) + sizeof(delta_SNumericArray));
 	memcpy(var->name, str, size);
 
 	var->next = D->numericArrays;
@@ -294,7 +294,7 @@ delta_SStringArray* delta_FindOrAddStringArray(delta_SState* D, const delta_TCha
 		return NULL;
 
 	memset(var, 0x00, blockSize);
-	var->name = ((delta_TByte*)var) + sizeof(delta_SStringArray);
+	var->name = (delta_TChar*)(((delta_TByte*)var) + sizeof(delta_SStringArray));
 	memcpy(var->name, str, size);
 
 	var->next = D->stringArrays;

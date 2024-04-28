@@ -1,6 +1,6 @@
 //
 
-//	| File:			dcompiler.h
+//	| File:			dmachine.h
 //	| Description:	
 //	| Created:		1 feb 2024
 //	| Author:		Reklov
@@ -16,8 +16,17 @@
 #include "dopcodes.h"
 #include "dstring.h"
 #include "dlexer.h"
-					//										//										//
 
+#include "dcompiler.h"
+
+#define DELTA_MACHINE_CHECK_IS_COMPILED()					\
+	if (D->bCompiled == dfalse) {							\
+		delta_EStatus status = delta_Compile(D);			\
+		if (status != DELTA_OK)								\
+			return status;									\
+	}
+
+					//										//										//
 // ------------------------------------------------------------------------- //
 
 /* ====================================
@@ -596,7 +605,7 @@ delta_EStatus MachinePrintNumeric(delta_SState* D) {
 
 	int size;
 	if (dec < DELTABASIC_NUMERIC_EPSILON)
-		size = snprintf(buffer, 32, "%i", (long)num);
+		size = snprintf(buffer, 32, "%li", (long)num);
 	else
 		size = snprintf(buffer, 32, "%f", num);
 
@@ -620,7 +629,7 @@ delta_EStatus MachinePrintNumericT(delta_SState* D) {
 
 	int size;
 	if (dec < DELTABASIC_NUMERIC_EPSILON)
-		size = snprintf(buffer, 32, "%i", (long)num);
+		size = snprintf(buffer, 32, "%li", (long)num);
 	else
 		size = snprintf(buffer, 32, "%f", num);
 
@@ -923,6 +932,8 @@ delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
  * MachineJump
  */
 delta_EStatus MachineJump(delta_SState* D) {
+	DELTA_MACHINE_CHECK_IS_COMPILED();
+
 	D->ip += 1;
 	const delta_TWord number = *((delta_TWord*)(D->bytecode + D->ip));
 	
@@ -939,6 +950,8 @@ delta_EStatus MachineJump(delta_SState* D) {
 delta_EStatus MachineGoSub(delta_SState* D) {
 	if (D->returnHead + 1 == DELTABASIC_RETURN_STACK_SIZE)
 		return DELTA_MACHINE_RETURN_STACK_OVERFLOW;
+
+	DELTA_MACHINE_CHECK_IS_COMPILED();
 
 	D->ip += 1;
 	const delta_TWord number = *((delta_TWord*)(D->bytecode + D->ip));
@@ -1529,6 +1542,8 @@ delta_EStatus MachineCallReturn(delta_SState* D) {
  * MachineRun
  */
 delta_EStatus MachineRun(delta_SState* D) {
+	DELTA_MACHINE_CHECK_IS_COMPILED();
+	
 	D->ip			= DELTABASIC_EXEC_BYTECODE_SIZE;
 	D->currentLine	= D->head;
 

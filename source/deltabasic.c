@@ -25,43 +25,6 @@
 // ------------------------------------------------------------------------- //
 
 /* ====================================
- * LoadFile
- */
-char* LoadFile(const char path[]);
-
-/* ====================================
- * g_usedMemory
- */
-static size_t g_usedMemory = 0;
-
-/* ====================================
- * Allocator
- */
-void* Allocator(void* ptr, size_t currentSize, size_t newSize, void* userData) {
-	DELTABASIC_UNUSED(userData);
-	DELTABASIC_UNUSED(currentSize);
-
-	if (newSize == 0) {
-		g_usedMemory -= currentSize;
-		free(ptr);
-		return NULL;
-	}
-	
-	if (currentSize == 0) {
-		g_usedMemory += newSize;
-		return malloc(newSize);
-	}
-	else {
-		if (currentSize > newSize)
-			g_usedMemory -= currentSize - newSize;
-		else
-			g_usedMemory += newSize - currentSize;
-
-		return realloc(ptr, newSize);
-	}
-}
-
-/* ====================================
  * delta_Print
  */
 int delta_Print(const delta_TChar str[], size_t size);
@@ -74,11 +37,19 @@ int delta_Input(delta_TChar* buffer, size_t size);
 // ------------------------------------------------------------------------- //
 
 #ifndef __DELTABASIC_LIB__
+
+// ------------------------------------------------------------------------- //
+
+/* ====================================
+ * LoadFile
+ */
+char* LoadFile(const char path[]);
+
 /* ====================================
  * main
  */
 int main(int argc, char* argv[]) {
-	delta_SState* D = delta_CreateState(Allocator, NULL);
+	delta_SState* D = delta_CreateState(NULL, NULL);
 
 	if (argc == 2) {
 		char* code = LoadFile(argv[1]);
@@ -118,23 +89,23 @@ int main(int argc, char* argv[]) {
 		return 0;
 	}
 
-	delta_SetNumeric(D, "UMEM", (delta_TNumber)g_usedMemory);
-
 	char buffer[256];
 	while (1) {
 		printf("> ");
 		fgets(buffer, 256, stdin);
 
-		delta_SetNumeric(D, "UMEM", (delta_TNumber)g_usedMemory);
 		delta_EStatus status = delta_Execute(D, buffer);
+		if (status == DELTA_OK)
+			status = delta_Interpret(D, 0);
+			
 		if (status != DELTA_OK) {
 			if (status == DELTA_END) {
 				printf("READY\n");
 			}
 			else {
-				size_t line;
+				size_t line = 0;
 				delta_GetLastLine(D, &line);
-				printf("ERROR: %zu IN LINE %zu\n", status, line);
+				printf("ERROR: %u IN LINE %lu\n", status, line);
 			}
 		}
 	}
@@ -143,7 +114,6 @@ int main(int argc, char* argv[]) {
 
 	return 0;
 }
-#endif
 
 // ------------------------------------------------------------------------- //
 
@@ -177,6 +147,8 @@ char* LoadFile(const char path[]) {
 }
 
 // ------------------------------------------------------------------------- //
+
+#endif
 
 // ------------------------------------------------------------------------- //
 
@@ -228,7 +200,7 @@ delta_SState* delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncU
 
 	D->execLine					= (delta_SLine*)DELTA_Alloc(D, sizeof(delta_SLine) + sizeof(delta_TChar) * DELTABASIC_EXEC_STRING_SIZE);
 	CreateStateAssert(D->execLine == NULL);
-	D->execLine->str			= ((delta_TByte*)D->execLine) + sizeof(delta_SLine);
+	D->execLine->str			= (char*)(((delta_TByte*)D->execLine) + sizeof(delta_SLine));
 
 	D->bytecodeSize				= DELTABASIC_EXEC_BYTECODE_SIZE + DELTABASIC_COMPILER_INITIAL_BYTECODE_SIZE;
 	D->bytecode					= (delta_TByte*)DELTA_Alloc(D, sizeof(delta_TByte) * D->bytecodeSize);
@@ -280,7 +252,7 @@ void delta_ReleaseState(delta_SState* D) {
 
 			delta_FreeNumericVariable(D, nvar);
 
-			nvar = nvar->next; 
+			nvar = next; 
 		}
 	}
 	
@@ -291,7 +263,7 @@ void delta_ReleaseState(delta_SState* D) {
 
 			delta_FreeStringVariable(D, nvar);
 
-			nvar = nvar->next; 
+			nvar = next; 
 		}
 	}
 
@@ -303,7 +275,7 @@ void delta_ReleaseState(delta_SState* D) {
 
 			delta_FreeNumericArray(D, narr);
 
-			narr = narr->next; 
+			narr = next; 
 		}
 	}
 
@@ -314,7 +286,7 @@ void delta_ReleaseState(delta_SState* D) {
 
 			delta_FreeStringArray(D, narr);
 
-			narr = narr->next; 
+			narr = next; 
 		}
 	}
 	
@@ -577,7 +549,7 @@ delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_
 		return DELTA_ALLOCATOR_ERROR;
 
 	memset(funcData, 0x00, blockSize);
-	funcData->name = ((delta_TByte*)funcData) + sizeof(delta_SCFunction);
+	funcData->name = (delta_TChar*)(((delta_TByte*)funcData) + sizeof(delta_SCFunction));
 	memcpy(funcData->name, name, size);
 
 	funcData->func = func;
@@ -661,9 +633,12 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 		D->currentLine = D->execLine;
 		D->ip = 0;
 
-		return delta_Interpret(D, 0);
+		//return delta_Interpret(D, 0);
 	}
 	else {
+		while ((*str == ' ') && (str < end))
+			++str;
+
 		size = (end - str) + 1;
 
 		D->bCompiled = dfalse;
@@ -685,11 +660,11 @@ delta_EStatus delta_Interpret(delta_SState* D, size_t nInstructions) {
 	if (D == NULL)
 		return DELTA_STATE_IS_NULL;
 
-	if (D->bCompiled == dfalse) {
+	/*if (D->bCompiled == dfalse) {
 		delta_EStatus status = delta_Compile(D);
 		if (status != DELTA_OK)
 			return status;
-	}
+	}*/
 
 	if (nInstructions == 0)
 		nInstructions = SIZE_MAX;

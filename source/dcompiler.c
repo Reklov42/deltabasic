@@ -18,9 +18,9 @@
 
 #define CompileInstructionParseAssert() { if (delta_Parse(L) != PARSE_OK) return DELTA_SYNTAX_ERROR; }
 #define ParseAssert() { if (delta_Parse(L) != PARSE_OK) return DELTA_SYNTAX_ERROR; }
-#define StatusAssert(exp) { delta_EStatus status = (exp); if (status != DELTA_OK) { return status; }}
-#define MathStatusAssert(exp, ret) { delta_EStatus status = (exp); if (status != ret) { return status; }}
-#define PushAssert(exp) { if ((exp) == dfalse) { return DELTA_ALLOCATOR_ERROR; }}
+#define StatusAssert(exp) { delta_EStatus status = (delta_EStatus)(exp); if (status != DELTA_OK) { return status; }}
+#define MathStatusAssert(exp, ret) { delta_EStatus status = (delta_EStatus)(exp); if (status != (delta_EStatus)ret) { return status; }}
+#define PushAssert(exp) { if ((delta_TBool)(exp) == dfalse) { return DELTA_ALLOCATOR_ERROR; }}
 
 					//										//										//
 
@@ -74,7 +74,7 @@ static delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, d
 /* ====================================
  * delta_EMathStatus
  */
-typedef enum {
+typedef enum delta_EMathStatus {
 	MATH_UNEXPECTED_CLOSING_BRACKET = DELTA_MATH_STATUS,
 	MATH_OK_UNDEF,
 	MATH_OK_STRING,
@@ -727,7 +727,7 @@ delta_EMathStatus CompileMath(delta_SState* D, delta_SLexerState* L, delta_SByte
 			// TODO: check UNDEF?
 
 			const delta_TChar symbol = L->symbol;
-			delta_EOpcodes opcode;
+			delta_EOpcodes opcode = OPCODE_HLT;
 			if (mathStatus == MATH_OK_NUMERIC) {
 				if ((symbol == '<') || (symbol == '>')) {
 					ParseAssert();
@@ -865,7 +865,17 @@ inline delta_TBool PushBytecodeDWord(delta_SState* D, delta_SBytecode* BC, delta
  * PushBytecodeNumber
  */
 inline delta_TBool PushBytecodeNumber(delta_SState* D, delta_SBytecode* BC, delta_TNumber number) {
-	return PushBytecodeDWord(D, BC, *((delta_TDWord*)(&number)));
+	// Just because GCC's "warning: dereferencing type-punned pointer will break strict-aliasing rules"
+	// on the hack-ish *((delta_TDWord*)(&number)) and blah-blah-blah
+
+	union {
+		delta_TNumber number;
+		delta_TDWord dword;
+	} cast;
+
+	cast.number = number;
+
+	return PushBytecodeDWord(D, BC, cast.dword);
 }
 
 /* ====================================

@@ -22,7 +22,7 @@
             "libPaths": [],
             "defines": [],
             "compiler": "gcc",
-            "compilerFlags": "-O2 -Wall -std=gnu99",
+            "compilerFlags": "-O2 -Wall -Wenum-compare -Wno-enum-compare -std=gnu99",
             "linker": "gcc",
             "linkerFlags": "-O2 -Wall -std=gnu99 -lm",
             "staticLibs": [],
@@ -36,11 +36,25 @@
             "libPaths": [],
             "defines": [],
             "compiler": "gcc",
-            "compilerFlags": "-O2 -g -std=gnu99 -lm",
+            "compilerFlags": "-g -std=gnu99 -lm",
             "linker": "gcc",
-            "linkerFlags": "-O2 -g -std=gnu99 -lm",
+            "linkerFlags": "-g -std=gnu99 -lm",
             "staticLibs": [],
             "outname": "dbas_debug"
+        },
+        "debug_leak": {
+            "type": "exec",
+            "includePaths": [
+                "source/"
+            ],
+            "libPaths": [],
+            "defines": [],
+            "compiler": "gcc",
+            "compilerFlags": "-fsanitize=address -static-libasan -g -std=gnu99 -lm",
+            "linker": "gcc",
+            "linkerFlags": "-fsanitize=address -g -std=gnu99 -lm",
+            "staticLibs": [],
+            "outname": "dbas_debug_leak"
         },
         "lib": {
             "type": "lib",

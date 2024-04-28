@@ -15,8 +15,8 @@
 
 #define parseHead (L->head)
 
-// ------------------------------------------------------------------------- //
 					//										//										//
+// ------------------------------------------------------------------------- //
 
 static const delta_TChar* op_table[] = {
 	"DIM",
@@ -49,16 +49,6 @@ static delta_TChar GetNextChar(const delta_TChar** str);
 // ------------------------------------------------------------------------- //
 
 /* ====================================
- * delta_GetOpName
- */
-const delta_TChar* delta_GetOpName(delta_EOp op) {
-	if ((op < 1) || (op > DELTA_OP_TABLE_SIZE))
-		return NULL;
-
-	return op_table[op - 1];
-}
-
-/* ====================================
  * delta_ReadInteger
  */
 const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* value) {
@@ -75,9 +65,6 @@ const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
 		*value = (delta_TInteger)atol(str);
 
 	while (isdigit(*str) != 0)
-		++str;
-
-	while (*str == ' ')
 		++str;
 
 	return str;
