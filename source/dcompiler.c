@@ -54,11 +54,6 @@ static delta_TBool	ExpandBytecodeBuffer(delta_SState* D, delta_SBytecode* BC);
 // ------------------------------------------------------------------------- //
 
 /* ====================================
- * IsMathSymbol
- */
-static delta_TBool IsMathSymbol(delta_TChar ch);
-
-/* ====================================
  * GetMathPriority
  */
 static size_t GetMathPriority(delta_EOpcodes op);
@@ -903,26 +898,6 @@ inline delta_TBool ExpandBytecodeBuffer(delta_SState* D, delta_SBytecode* BC) {
 }
 
 // ------------------------------------------------------------------------- //
-
-/* ====================================
- * IsMathSymbol
- */
-inline delta_TBool IsMathSymbol(delta_TChar ch) {
-	if (ch == '+') return dtrue;
-	if (ch == '-') return dtrue;
-
-	if (ch == '*') return dtrue;
-	if (ch == '/') return dtrue;
-
-	if (ch == '^') return dtrue;
-	if (ch == '%') return dtrue;
-
-	if (ch == '=') return dtrue;
-	if (ch == '<') return dtrue;
-	if (ch == '>') return dtrue;
-
-	return dfalse;
-}
 
 /* ====================================
  * GetMathPriority

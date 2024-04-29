@@ -22,7 +22,7 @@
             "libPaths": [],
             "defines": [],
             "compiler": "gcc",
-            "compilerFlags": "-O2 -Wall -Wenum-compare -Wno-enum-compare -std=gnu99",
+            "compilerFlags": "-O2 -Wall -Wno-enum-compare -std=gnu99",
             "linker": "gcc",
             "linkerFlags": "-O2 -Wall -std=gnu99 -lm",
             "staticLibs": [],
@@ -67,8 +67,24 @@
             ],
             "compiler": "gcc",
             "compilerFlags": "-O2 -std=gnu99",
+            "archiver": "ar",
             "staticLibs": [],
             "outname": "libdbas.a"
+        },
+        "em_lib": {
+            "type": "lib",
+            "includePaths": [
+                "source/"
+            ],
+            "libPaths": [],
+            "defines": [
+                "__DELTABASIC_LIB__"
+            ],
+            "compiler": "emcc",
+            "compilerFlags": "-O2 -std=gnu99 -Wall -Wno-enum-conversion -Wno-enum-compare",
+            "archiver": "emar",
+            "staticLibs": [],
+            "outname": "libemdbas.a"
         }
     }
 }

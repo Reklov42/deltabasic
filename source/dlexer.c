@@ -74,7 +74,7 @@ const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
  * delta_ReadWord
  */
 const delta_TChar* delta_ReadWord(const delta_TChar str[], const delta_TChar** wordStart, size_t* size) {
-	if ((str == NULL))
+	if (str == NULL)
 		return NULL;
 
 	while (((*str == ' ') && (*str == '\0')) && (isalpha(*str) == 0) && (*str != '_'))
