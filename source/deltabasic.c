@@ -105,7 +105,12 @@ int main(int argc, char* argv[]) {
 			else {
 				size_t line = 0;
 				delta_GetLastLine(D, &line);
-				printf("ERROR: %u IN LINE %lu\n", status, line);
+				printf("ERROR: %u", status);
+				if (line != DELTABASIC_EXEC_LINE_NUMBER)
+					printf(" IN LINE %lu\n", line);
+				else
+					printf("\n");
+
 			}
 		}
 	}
@@ -624,7 +629,7 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 		D->execLine->str[size] = '\0';
 		D->execLine->next = NULL;
 		D->execLine->prev = NULL;
-		D->execLine->line = -1;
+		D->execLine->line = SIZE_MAX;
 
 		delta_EStatus status = delta_CompileLine(D, D->execLine, NULL, &bc);
 		if (status != DELTA_OK)

@@ -899,7 +899,8 @@ delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
 	}
 
 	if (line->line == number) {
-		D->ip = D->ip - 1;
+		D->ip = line->offset;
+		D->currentLine = line;
 		return line;
 	}
 	else if (line->line > number) {
@@ -932,11 +933,10 @@ delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
  * MachineJump
  */
 delta_EStatus MachineJump(delta_SState* D) {
-	DELTA_MACHINE_CHECK_IS_COMPILED();
-
 	D->ip += 1;
 	const delta_TWord number = *((delta_TWord*)(D->bytecode + D->ip));
 	
+	DELTA_MACHINE_CHECK_IS_COMPILED();
 	if (FindLine(D, number) == NULL)
 		return DELTA_OUT_OF_LINES_RANGE;
 
@@ -951,14 +951,14 @@ delta_EStatus MachineGoSub(delta_SState* D) {
 	if (D->returnHead + 1 == DELTABASIC_RETURN_STACK_SIZE)
 		return DELTA_MACHINE_RETURN_STACK_OVERFLOW;
 
-	DELTA_MACHINE_CHECK_IS_COMPILED();
-
 	D->ip += 1;
 	const delta_TWord number = *((delta_TWord*)(D->bytecode + D->ip));
 	D->ip += 2;
 	
 	D->returnStack[D->returnHead].ip = D->ip;
 	D->returnStack[D->returnHead].line = D->currentLine;
+
+	DELTA_MACHINE_CHECK_IS_COMPILED();
 	if (FindLine(D, number) == NULL)
 		return DELTA_OUT_OF_LINES_RANGE;
 
