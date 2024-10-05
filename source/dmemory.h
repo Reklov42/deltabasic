@@ -1,11 +1,9 @@
-//
-
-//	| File:			dmemory.h
-//	| Description:	
-//	| Created:		3 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dmemory.h
+ * \brief	Basic allocator
+ * \date	3 feb 2024
+ * \author	Reklov
+ */
 #ifndef __DELTABASIC_MEMORY_H__
 #define __DELTABASIC_MEMORY_H__
 
@@ -17,8 +15,9 @@
 #define DELTA_Realloc(D, ptr, size, newsize)				((D)->allocFunction((ptr),	(size),	(newsize),	(D)->allocFuncUserData))
 #define DELTA_Free(D, ptr, size)							((D)->allocFunction((ptr),	(size),	0,			(D)->allocFuncUserData))
 
-					//										//										//
-/* ====================================
+// ******************************************************************************** //
+
+/**
  * delta_Allocator
  */
 void*				delta_Allocator(void* ptr, size_t currentSize, size_t newSize, void* userData);

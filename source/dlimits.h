@@ -1,17 +1,14 @@
-//
-
-//	| File:			dlimits.c
-//	| Description:	Limits, basic types, and other "type-based" things
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dlimits.h
+ * \brief	Limits, basic types, and other "type-based" things
+ * \date	1 feb 2024
+ * \author	Reklov
+ */
 #ifndef __DELTABASIC_LIMITS_H__
 #define __DELTABASIC_LIMITS_H__
 
 #include <stdint.h>
 
-					//										//										//
 #define DELTABASIC_CAST(type, exp)							((type)(exp))
 #define DELTABASIC_UNUSED(rv)								((void)(rv)) // to avoid warnings
 

@@ -1,11 +1,9 @@
-//
-
-//	| File:			dlexer.c
-//	| Description:	
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dlexer.c
+ * \brief	Lexer
+ * \date	1 feb 2024
+ * \author	Reklov
+ */
 #include "dlexer.h"
 
 #include <ctype.h>
@@ -15,8 +13,7 @@
 
 #define parseHead (L->head)
 
-					//										//										//
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
 static const delta_TChar* op_table[] = {
 	"DIM",
@@ -39,16 +36,16 @@ static const delta_TChar* op_table[] = {
 
 #define DELTA_OP_TABLE_SIZE									(sizeof(op_table) / sizeof(delta_TChar*))
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * GetNextChar
  */
 static delta_TChar GetNextChar(const delta_TChar** str);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_ReadInteger
  */
 const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* value) {
@@ -70,7 +67,7 @@ const delta_TChar* delta_ReadInteger(const delta_TChar str[], delta_TInteger* va
 	return str;
 }
 
-/* ====================================
+/* ****************************************
  * delta_ReadWord
  */
 const delta_TChar* delta_ReadWord(const delta_TChar str[], const delta_TChar** wordStart, size_t* size) {
@@ -95,7 +92,7 @@ const delta_TChar* delta_ReadWord(const delta_TChar str[], const delta_TChar** w
 	return str;
 }
 
-/* ====================================
+/* ****************************************
  * CompareStrings
  */
 delta_EParseStatus delta_Parse(delta_SLexerState* L) {
@@ -223,9 +220,9 @@ delta_EParseStatus delta_Parse(delta_SLexerState* L) {
 	return PARSE_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * GetNextChar
  */
 inline delta_TChar GetNextChar(const delta_TChar** str) {

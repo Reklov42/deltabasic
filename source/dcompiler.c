@@ -1,11 +1,9 @@
-//
-
-//	| File:			dcompiler.h
-//	| Description:	
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dcompiler.c
+ * \brief	Bytecode compiler
+ * \date	1 feb 2024
+ * \author	Reklov
+ */
 #include "dcompiler.h"
 
 #include <string.h>
@@ -21,52 +19,50 @@
 #define StatusAssert(exp) { delta_EStatus status = (delta_EStatus)(exp); if (status != DELTA_OK) { return status; }}
 #define MathStatusAssert(exp, ret) { delta_EStatus status = (delta_EStatus)(exp); if (status != (delta_EStatus)ret) { return status; }}
 #define PushAssert(exp) { if ((delta_TBool)(exp) == dfalse) { return DELTA_ALLOCATOR_ERROR; }}
+  
+// ******************************************************************************** //
 
-					//										//										//
-
-// ------------------------------------------------------------------------- //
-
-/* ====================================
+/**
  * PushBytecodeByte
  */
 static delta_TBool	PushBytecodeByte(delta_SState* D, delta_SBytecode* BC, delta_TByte byte);
 
-/* ====================================
+/**
  * PushBytecodeWord
  */
 static delta_TBool	PushBytecodeWord(delta_SState* D, delta_SBytecode* BC, delta_TWord word);
 
-/* ====================================
+/**
  * PushBytecodeDoubleWord
  */
 static delta_TBool	PushBytecodeDWord(delta_SState* D, delta_SBytecode* BC, delta_TDWord dword);
 
-/* ====================================
+/**
  * PushBytecodeNumber
  */
 static delta_TBool	PushBytecodeNumber(delta_SState* D, delta_SBytecode* BC, delta_TNumber number);
 
-/* ====================================
+/**
  * ExpandBytecodeBuffer
  */
 static delta_TBool	ExpandBytecodeBuffer(delta_SState* D, delta_SBytecode* BC);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/**
  * GetMathPriority
  */
 static size_t GetMathPriority(delta_EOpcodes op);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/**
  * CompileInstruction
  */
 static delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC);
 
 
-/* ====================================
+/**
  * delta_EMathStatus
  */
 typedef enum delta_EMathStatus {
@@ -77,19 +73,19 @@ typedef enum delta_EMathStatus {
 	MATH_NOT_ENOUGH_VALUES,
 } delta_EMathStatus;
 
-/* ====================================
+/**
  * CompileMathUnary
  */
 delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC, delta_EMathStatus* mathStatus);
 
-/* ====================================
+/**
  * CompileMath
  */
 delta_EMathStatus CompileMath(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC, delta_EMathStatus startingMathStatus);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_Compile
  */
 delta_EStatus delta_Compile(delta_SState* D) {
@@ -130,7 +126,7 @@ delta_EStatus delta_Compile(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_CompileLine
  */
 delta_EStatus delta_CompileLine(delta_SState* D, delta_SLine* L, delta_TChar* str, delta_SBytecode* BC) {
@@ -158,7 +154,7 @@ delta_EStatus delta_CompileLine(delta_SState* D, delta_SLine* L, delta_TChar* st
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * CompileCall
  */
 delta_EStatus CompileCall(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC, size_t index, delta_ECFuncArgType returnType, delta_TBool bReturn) {
@@ -194,7 +190,7 @@ delta_EStatus CompileCall(delta_SState* D, delta_SLexerState* L, delta_SBytecode
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * CompileInstruction
  */
 delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC) {
@@ -537,9 +533,9 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * CompileMathUnary
  */
 delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC, delta_EMathStatus* mathStatus) {
@@ -612,7 +608,7 @@ delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_
 
 		return DELTA_OK;
 	}
-	else if (L->type == LEXEM_NAME) { // TODO: functions
+	else if (L->type == LEXEM_NAME) {
 		delta_SLexemString str = L->string;
 		
 		if (*mathStatus == MATH_OK_UNDEF) {
@@ -694,7 +690,7 @@ delta_EMathStatus CompileMathUnary(delta_SState* D, delta_SLexerState* L, delta_
 	return DELTA_SYNTAX_ERROR;
 }
 
-/* ====================================
+/* ****************************************
  * CompileMath
  */
 delta_EMathStatus CompileMath(delta_SState* D, delta_SLexerState* L, delta_SBytecode* BC, delta_EMathStatus startingMathStatus) {
@@ -809,9 +805,9 @@ delta_EMathStatus CompileMath(delta_SState* D, delta_SLexerState* L, delta_SByte
 	return mathStatus;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * PushBytecodeByte
  */
 delta_TBool PushBytecodeByte(delta_SState* D, delta_SBytecode* BC, delta_TByte byte) {
@@ -826,7 +822,7 @@ delta_TBool PushBytecodeByte(delta_SState* D, delta_SBytecode* BC, delta_TByte b
 	return dtrue;
 }
 
-/* ====================================
+/* ****************************************
  * PushBytecodeWord
  */
 inline delta_TBool PushBytecodeWord(delta_SState* D, delta_SBytecode* BC, delta_TWord word) {
@@ -841,7 +837,7 @@ inline delta_TBool PushBytecodeWord(delta_SState* D, delta_SBytecode* BC, delta_
 	return dtrue;
 }
 
-/* ====================================
+/* ****************************************
  * PushBytecodeDWord
  */
 inline delta_TBool PushBytecodeDWord(delta_SState* D, delta_SBytecode* BC, delta_TDWord dword) {
@@ -856,7 +852,7 @@ inline delta_TBool PushBytecodeDWord(delta_SState* D, delta_SBytecode* BC, delta
 	return dtrue;
 }
 
-/* ====================================
+/* ****************************************
  * PushBytecodeNumber
  */
 inline delta_TBool PushBytecodeNumber(delta_SState* D, delta_SBytecode* BC, delta_TNumber number) {
@@ -873,7 +869,7 @@ inline delta_TBool PushBytecodeNumber(delta_SState* D, delta_SBytecode* BC, delt
 	return PushBytecodeDWord(D, BC, cast.dword);
 }
 
-/* ====================================
+/* ****************************************
  * ExpandBytecodeBuffer
  */
 inline delta_TBool ExpandBytecodeBuffer(delta_SState* D, delta_SBytecode* BC) {
@@ -897,9 +893,9 @@ inline delta_TBool ExpandBytecodeBuffer(delta_SState* D, delta_SBytecode* BC) {
 	return dtrue;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * GetMathPriority
  */
 inline size_t GetMathPriority(delta_EOpcodes op) {

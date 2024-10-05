@@ -1,11 +1,9 @@
-//
-
-//	| File:			dmachine.h
-//	| Description:	
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dmachine.c
+ * \brief	DeltaBASIC VM
+ * \date	14 feb 2024
+ * \author	Reklov
+ */
 #include "dmachine.h"
 
 #include <string.h>
@@ -26,299 +24,120 @@
 			return status;									\
 	}
 
-					//										//										//
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineHalt
- */
 delta_EStatus MachineHalt(delta_SState* D);
-
-/* ====================================
- * MachineNextLine
- */
 delta_EStatus MachineNextLine(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachinePushNumeric
- */
 delta_EStatus MachinePushNumeric(delta_SState* D);
-
-/* ====================================
- * MachineSetNumeric
- */
 delta_EStatus MachineSetNumeric(delta_SState* D);
-
-/* ====================================
- * MachineGetNumeric
- */
 delta_EStatus MachineGetNumeric(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachinePushString
- */
 delta_EStatus MachinePushString(delta_SState* D);
-
-/* ====================================
- * MachineSetString
- */
 delta_EStatus MachineSetString(delta_SState* D);
-
-/* ====================================
- * MachineGetString
- */
 delta_EStatus MachineGetString(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineConcat
- */
 delta_EStatus MachineConcat(delta_SState* D);
-
-/* ====================================
- * MachineAdd
- */
 delta_EStatus MachineAdd(delta_SState* D);
-
-/* ====================================
- * MachineSub
- */
 delta_EStatus MachineSub(delta_SState* D);
-
-/* ====================================
- * MachineMul
- */
 delta_EStatus MachineMul(delta_SState* D);
-
-/* ====================================
- * MachineDiv
- */
 delta_EStatus MachineDiv(delta_SState* D);
-
-/* ====================================
- * MachineMod
- */
 delta_EStatus MachineMod(delta_SState* D);
-
-/* ====================================
- * MachinePow
- */
 delta_EStatus MachinePow(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachinePrintNumeric
- */
 delta_EStatus MachinePrintNumeric(delta_SState* D);
-
-/* ====================================
- * MachinePrintNumericT
- */
 delta_EStatus MachinePrintNumericT(delta_SState* D);
-
-/* ====================================
- * MachinePrintString
- */
 delta_EStatus MachinePrintString(delta_SState* D);
-
-/* ====================================
- * MachinePrintStringT
- */
 delta_EStatus MachinePrintStringT(delta_SState* D);
-
-/* ====================================
- * MachinePrintNewLine
- */
 delta_EStatus MachinePrintNewLine(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineEqualTo
- */
 delta_EStatus MachineEqualTo(delta_SState* D);
-
-/* ====================================
- * MachineNotEqualTo
- */
 delta_EStatus MachineNotEqualTo(delta_SState* D);
-
-/* ====================================
- * MachineLessThan
- */
 delta_EStatus MachineLessThan(delta_SState* D);
-
-/* ====================================
- * MachineGreaterThan
- */
 delta_EStatus MachineGreaterThan(delta_SState* D);
-
-/* ====================================
- * MachineLessOrEqualTo
- */
 delta_EStatus MachineLessOrEqualTo(delta_SState* D);
-
-/* ====================================
- * MachineGreaterOrEqualTo
- */
 delta_EStatus MachineGreaterOrEqualTo(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineNeg
- */
 delta_EStatus MachineNeg(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineStop
- */
 delta_EStatus MachineStop(delta_SState* D);
-
-/* ====================================
- * MachineRun
- */
 delta_EStatus MachineRun(delta_SState* D);
-
-/* ====================================
- * MachineJump
- */
 delta_EStatus MachineJump(delta_SState* D);
-
-/* ====================================
- * MachineGoSub
- */
 delta_EStatus MachineGoSub(delta_SState* D);
-
-/* ====================================
- * MachineReturn
- */
 delta_EStatus MachineReturn(delta_SState* D);
-
-/* ====================================
- * MachineJumpNextLineIfNotZero
- */
 delta_EStatus MachineJumpNextLineIfNotZero(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineSetFor
- */
 delta_EStatus MachineSetFor(delta_SState* D);
-
-/* ====================================
- * MachineSetStepFor
- */
 delta_EStatus MachineSetStepFor(delta_SState* D);
-
-/* ====================================
- * MachineNextFor
- */
 delta_EStatus MachineNextFor(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineInputNumeric
- */
 delta_EStatus MachineInputNumeric(delta_SState* D);
-
-/* ====================================
- * MachineInputString
- */
 delta_EStatus MachineInputString(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * AllocNumericArray
- */
 delta_EStatus AllocNumericArray(delta_SState* D, delta_SNumericArray* array);
-
-/* ====================================
- * AllocStringArray
- */
 delta_EStatus AllocStringArray(delta_SState* D, delta_SStringArray* array);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineAllocNumericArray
- */
 delta_EStatus MachineAllocNumericArray(delta_SState* D);
-
-/* ====================================
- * MachineAllocStringArray
- */
 delta_EStatus MachineAllocStringArray(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineGetNumericArray
- */
 delta_EStatus MachineGetNumericArray(delta_SState* D);
-
-/* ====================================
- * MachineGetStringArray
- */
 delta_EStatus MachineGetStringArray(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineSetNumericArray
- */
 delta_EStatus MachineSetNumericArray(delta_SState* D);
-
-/* ====================================
- * MachineSetStringArray
- */
 delta_EStatus MachineSetStringArray(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * MachineCall
- */
 delta_EStatus MachineCall(delta_SState* D);
-
-/* ====================================
- * MachineCallReturn
- */
 delta_EStatus MachineCallReturn(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-
-/* ====================================
+/**
  * FormatNumeric
  */
 size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number);
 
-/* ====================================
+/**
  * PrintTabs
  */
 size_t PrintTabs(delta_SState* D, size_t size);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * TMachineFunction
+/**
+ * VM function
  */
 typedef delta_EStatus(*TMachineFunction)(delta_SState* D);
 
-/* ====================================
- * machine_functions
+/**
+ * Opcode to VM function
  */
 static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineHalt,
@@ -369,9 +188,9 @@ static const TMachineFunction machine_functions[OPCODE_COUNT] = {
 	MachineCallReturn,
 };
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_ExecuteInstruction
  */
 delta_EStatus delta_ExecuteInstruction(delta_SState* D) {
@@ -391,11 +210,9 @@ delta_EStatus delta_ExecuteInstruction(delta_SState* D) {
 	return status;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-#include <stdio.h>
-
-/* ====================================
+/* ****************************************
  * MachineHalt
  */
 delta_EStatus MachineHalt(delta_SState* D) {
@@ -405,7 +222,7 @@ delta_EStatus MachineHalt(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineNextLine
  */
 delta_EStatus MachineNextLine(delta_SState* D) {
@@ -415,7 +232,7 @@ delta_EStatus MachineNextLine(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachinePushNumeric
  */
 delta_EStatus MachinePushNumeric(delta_SState* D) {
@@ -430,7 +247,7 @@ delta_EStatus MachinePushNumeric(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineSetNumeric
  */
 delta_EStatus MachineSetNumeric(delta_SState* D) {
@@ -451,7 +268,7 @@ delta_EStatus MachineSetNumeric(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineGetNumeric
  */
 delta_EStatus MachineGetNumeric(delta_SState* D) {
@@ -472,9 +289,9 @@ delta_EStatus MachineGetNumeric(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineConcat
  */
 delta_EStatus MachineConcat(delta_SState* D) {
@@ -505,7 +322,7 @@ delta_EStatus MachineConcat(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineAdd
  */
 delta_EStatus MachineAdd(delta_SState* D) {
@@ -519,7 +336,7 @@ delta_EStatus MachineAdd(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineSub
  */
 delta_EStatus MachineSub(delta_SState* D) {
@@ -533,7 +350,7 @@ delta_EStatus MachineSub(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineMul
  */
 delta_EStatus MachineMul(delta_SState* D) {
@@ -547,7 +364,7 @@ delta_EStatus MachineMul(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineDiv
  */
 delta_EStatus MachineDiv(delta_SState* D) {
@@ -561,7 +378,7 @@ delta_EStatus MachineDiv(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineMod
  */
 delta_EStatus MachineMod(delta_SState* D) {
@@ -575,7 +392,7 @@ delta_EStatus MachineMod(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachinePow
  */
 delta_EStatus MachinePow(delta_SState* D) {
@@ -589,9 +406,9 @@ delta_EStatus MachinePow(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachinePrintNumeric
  */
 delta_EStatus MachinePrintNumeric(delta_SState* D) {
@@ -615,7 +432,7 @@ delta_EStatus MachinePrintNumeric(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachinePow
  */
 delta_EStatus MachinePrintNumericT(delta_SState* D) {
@@ -640,7 +457,7 @@ delta_EStatus MachinePrintNumericT(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachinePrintString
  */
 delta_EStatus MachinePrintString(delta_SState* D) {
@@ -658,7 +475,7 @@ delta_EStatus MachinePrintString(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachinePrintStringT
  */
 delta_EStatus MachinePrintStringT(delta_SState* D) {
@@ -678,7 +495,7 @@ delta_EStatus MachinePrintStringT(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachinePrintNewLine
  */
 delta_EStatus MachinePrintNewLine(delta_SState* D) {
@@ -689,9 +506,9 @@ delta_EStatus MachinePrintNewLine(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachinePushString
  */
 delta_EStatus MachinePushString(delta_SState* D) {
@@ -714,7 +531,7 @@ delta_EStatus MachinePushString(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineSetString
  */
 delta_EStatus MachineSetString(delta_SState* D)  {
@@ -739,7 +556,7 @@ delta_EStatus MachineSetString(delta_SState* D)  {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineGetString
  */
 delta_EStatus MachineGetString(delta_SState* D) {
@@ -773,9 +590,9 @@ delta_EStatus MachineGetString(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineEqualTo
  */
 delta_EStatus MachineEqualTo(delta_SState* D) {
@@ -790,7 +607,7 @@ delta_EStatus MachineEqualTo(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineNotEqualTo
  */
 delta_EStatus MachineNotEqualTo(delta_SState* D) {
@@ -805,7 +622,7 @@ delta_EStatus MachineNotEqualTo(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineLessThan
  */
 delta_EStatus MachineLessThan(delta_SState* D) {
@@ -819,7 +636,7 @@ delta_EStatus MachineLessThan(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineGreaterThan
  */
 delta_EStatus MachineGreaterThan(delta_SState* D) {
@@ -833,7 +650,7 @@ delta_EStatus MachineGreaterThan(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineLessOrEqualTo
  */
 delta_EStatus MachineLessOrEqualTo(delta_SState* D) {
@@ -847,7 +664,7 @@ delta_EStatus MachineLessOrEqualTo(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineGreaterOrEqualTo
  */
 delta_EStatus MachineGreaterOrEqualTo(delta_SState* D) {
@@ -861,9 +678,9 @@ delta_EStatus MachineGreaterOrEqualTo(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineNeg
  */
 delta_EStatus MachineNeg(delta_SState* D) {
@@ -876,9 +693,9 @@ delta_EStatus MachineNeg(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineStop
  */
 delta_EStatus MachineStop(delta_SState* D) {
@@ -886,7 +703,7 @@ delta_EStatus MachineStop(delta_SState* D) {
 	return DELTA_MACHINE_STOP;
 }
 
-/* ====================================
+/* ****************************************
  * FindLine
  */
 delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
@@ -929,7 +746,7 @@ delta_SLine* FindLine(delta_SState* D, delta_TWord number) {
 	return line;
 }
 
-/* ====================================
+/* ****************************************
  * MachineJump
  */
 delta_EStatus MachineJump(delta_SState* D) {
@@ -944,7 +761,7 @@ delta_EStatus MachineJump(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineGoSub
  */
 delta_EStatus MachineGoSub(delta_SState* D) {
@@ -967,7 +784,7 @@ delta_EStatus MachineGoSub(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineReturn
  */
 delta_EStatus MachineReturn(delta_SState* D) {
@@ -983,7 +800,7 @@ delta_EStatus MachineReturn(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineJumpNextLineIfNotZero
  */
 delta_EStatus MachineJumpNextLineIfNotZero(delta_SState* D) {
@@ -1003,9 +820,9 @@ delta_EStatus MachineJumpNextLineIfNotZero(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineSetFor
  */
 delta_EStatus MachineSetFor(delta_SState* D) {
@@ -1042,7 +859,7 @@ delta_EStatus MachineSetFor(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineSetStepFor
  */
 delta_EStatus MachineSetStepFor(delta_SState* D) {
@@ -1084,7 +901,7 @@ delta_EStatus MachineSetStepFor(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineNextFor
  */
 delta_EStatus MachineNextFor(delta_SState* D) {
@@ -1113,9 +930,9 @@ delta_EStatus MachineNextFor(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineInputNumeric
  */
 delta_EStatus MachineInputNumeric(delta_SState* D) {
@@ -1146,7 +963,7 @@ delta_EStatus MachineInputNumeric(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineInputString
  */
 delta_EStatus MachineInputString(delta_SState* D) {
@@ -1183,9 +1000,9 @@ delta_EStatus MachineInputString(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * AllocNumericArray
  */
 delta_EStatus AllocNumericArray(delta_SState* D, delta_SNumericArray* array) {
@@ -1199,7 +1016,7 @@ delta_EStatus AllocNumericArray(delta_SState* D, delta_SNumericArray* array) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * AllocStringArray
  */
 delta_EStatus AllocStringArray(delta_SState* D, delta_SStringArray* array) {
@@ -1218,9 +1035,9 @@ delta_EStatus AllocStringArray(delta_SState* D, delta_SStringArray* array) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineAllocNumericArray
  */
 delta_EStatus MachineAllocNumericArray(delta_SState* D) {
@@ -1251,7 +1068,7 @@ delta_EStatus MachineAllocNumericArray(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineAllocStringArray
  */
 delta_EStatus MachineAllocStringArray(delta_SState* D) {
@@ -1282,9 +1099,9 @@ delta_EStatus MachineAllocStringArray(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineGetNumericArray
  */
 delta_EStatus MachineGetNumericArray(delta_SState* D) {
@@ -1319,7 +1136,7 @@ delta_EStatus MachineGetNumericArray(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineGetStringArray
  */
 delta_EStatus MachineGetStringArray(delta_SState* D) {
@@ -1368,9 +1185,9 @@ delta_EStatus MachineGetStringArray(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineSetNumericArray
  */
 delta_EStatus MachineSetNumericArray(delta_SState* D) {
@@ -1406,7 +1223,7 @@ delta_EStatus MachineSetNumericArray(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineSetStringArray
  */
 delta_EStatus MachineSetStringArray(delta_SState* D) {
@@ -1448,9 +1265,9 @@ delta_EStatus MachineSetStringArray(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * CallCFunction
  */
 delta_EStatus CallCFunction(delta_SState* D, size_t index) {
@@ -1501,7 +1318,7 @@ delta_EStatus CallCFunction(delta_SState* D, size_t index) {
 	return status;
 }
 
-/* ====================================
+/* ****************************************
  * MachineCall
  */
 delta_EStatus MachineCall(delta_SState* D) {
@@ -1518,7 +1335,7 @@ delta_EStatus MachineCall(delta_SState* D) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * MachineCallReturn
  */
 delta_EStatus MachineCallReturn(delta_SState* D) {
@@ -1536,9 +1353,9 @@ delta_EStatus MachineCallReturn(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * MachineRun
  */
 delta_EStatus MachineRun(delta_SState* D) {
@@ -1550,9 +1367,9 @@ delta_EStatus MachineRun(delta_SState* D) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * FormatNumeric
  */
 size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number) {
@@ -1592,7 +1409,7 @@ size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number) {
 	return size;
 }
 
-/* ====================================
+/* ****************************************
  * PrintTabs
  */
 size_t PrintTabs(delta_SState* D, size_t size) {

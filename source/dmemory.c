@@ -1,20 +1,18 @@
-//
-
-//	| File:			dmemory.c
-//	| Description:	
-//	| Created:		3 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dmemory.c
+ * \brief	Basic allocator
+ * \date	3 feb 2024
+ * \author	Reklov
+ */
 #include "dmemory.h"
 
 #include <stdlib.h>
 
 #include "dlimits.h"
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_Allocator
  */
 void* delta_Allocator(void* ptr, size_t currentSize, size_t newSize, void* userData) {

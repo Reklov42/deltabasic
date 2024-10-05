@@ -1,11 +1,9 @@
-//
-
-//	| File:			DeltaBasic.c
-//	| Description:	Header to include as a library
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	deltabasic.c
+ * \brief	Basic BASIC functions ;)
+ * \date	1 feb 2024
+ * \author	Reklov
+ */
 #include "deltabasic.h"
 
 #include <stdlib.h>
@@ -22,30 +20,30 @@
 
 #define CreateStateAssert(exp)	if (exp) { delta_ReleaseState(D); return NULL; }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/**
  * delta_Print
  */
 int delta_Print(const delta_TChar str[], size_t size);
 
-/* ====================================
+/**
  * delta_Input
  */
 int delta_Input(delta_TChar* buffer, size_t size);
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
 #ifndef __DELTABASIC_LIB__
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/**
  * LoadFile
  */
 char* LoadFile(const char path[]);
 
-/* ====================================
+/**
  * main
  */
 int main(int argc, char* argv[]) {
@@ -120,9 +118,9 @@ int main(int argc, char* argv[]) {
 	return 0;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * LoadFile
  */
 char* LoadFile(const char path[]) {
@@ -151,13 +149,13 @@ char* LoadFile(const char path[]) {
 	return buffer;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
 #endif
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_Print
  */
 int delta_Print(const delta_TChar str[], size_t size) {
@@ -167,7 +165,7 @@ int delta_Print(const delta_TChar str[], size_t size) {
 	return n;
 }
 
-/* ====================================
+/* ****************************************
  * delta_Input
  */
 int delta_Input(delta_TChar* buffer, size_t size) {
@@ -183,9 +181,9 @@ int delta_Input(delta_TChar* buffer, size_t size) {
 	return i;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_CreateState
  */
 delta_SState* delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncUserData) {
@@ -219,7 +217,7 @@ delta_SState* delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncU
 	return D;
 }
 
-/* ====================================
+/* ****************************************
  * delta_ReleaseState
  */
 void delta_ReleaseState(delta_SState* D) {
@@ -298,9 +296,9 @@ void delta_ReleaseState(delta_SState* D) {
 	allocFunc(D, sizeof(delta_SState), 0, userData);
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_Run
  */
 delta_EStatus delta_Run(delta_SState* D) {
@@ -317,7 +315,7 @@ delta_EStatus delta_Run(delta_SState* D) {
 	return delta_Compile(D);
 }
 
-/* ====================================
+/* ****************************************
  * delta_GetLastLine
  */
 delta_EStatus delta_GetLastLine(delta_SState* D, size_t* line) {
@@ -330,9 +328,9 @@ delta_EStatus delta_GetLastLine(delta_SState* D, size_t* line) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_SetNumeric
  */
 delta_EStatus delta_SetNumeric(delta_SState * D, const char name[], delta_TNumber value) {
@@ -353,7 +351,7 @@ delta_EStatus delta_SetNumeric(delta_SState * D, const char name[], delta_TNumbe
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_GetNumeric
  */
 delta_EStatus delta_GetNumeric(delta_SState* D, const char name[], delta_TNumber* value) {
@@ -374,7 +372,7 @@ delta_EStatus delta_GetNumeric(delta_SState* D, const char name[], delta_TNumber
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_SetString
  */
 delta_EStatus delta_SetString(delta_SState* D, const char name[], const char value[]) {
@@ -408,7 +406,7 @@ delta_EStatus delta_SetString(delta_SState* D, const char name[], const char val
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_GetString
  */
 delta_EStatus delta_GetString(delta_SState* D, const char name[], const char* value[]) {
@@ -429,9 +427,9 @@ delta_EStatus delta_GetString(delta_SState* D, const char name[], const char* va
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_GetArgNumeric
  */
 delta_EStatus delta_GetArgNumeric(delta_SState* D, size_t index, delta_TNumber* value) {
@@ -453,7 +451,7 @@ delta_EStatus delta_GetArgNumeric(delta_SState* D, size_t index, delta_TNumber* 
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_GetArgString
  */
 delta_EStatus delta_GetArgString(delta_SState* D, size_t index, const char* value[]) {
@@ -475,7 +473,7 @@ delta_EStatus delta_GetArgString(delta_SState* D, size_t index, const char* valu
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_ReturnNumeric
  */
 delta_EStatus delta_ReturnNumeric(delta_SState* D, delta_TNumber value) {
@@ -493,7 +491,7 @@ delta_EStatus delta_ReturnNumeric(delta_SState* D, delta_TNumber value) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_ReturnString
  */
 delta_EStatus delta_ReturnString(delta_SState* D, const char value[]) {
@@ -525,7 +523,7 @@ delta_EStatus delta_ReturnString(delta_SState* D, const char value[]) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_RegisterCFunction
  */
 delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_ECFuncArgType returnType, delta_TCFunction func) {
@@ -589,9 +587,9 @@ delta_EStatus delta_RegisterCFunction(delta_SState* D, const char name[], delta_
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_Execute
  */
 delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
@@ -658,7 +656,7 @@ delta_EStatus delta_Execute(delta_SState* D, const char execStr[]) {
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_Interpret
  */
 delta_EStatus delta_Interpret(delta_SState* D, size_t nInstructions) {
@@ -683,9 +681,9 @@ delta_EStatus delta_Interpret(delta_SState* D, size_t nInstructions) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_SetPrintFunction
  */
 delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
@@ -725,9 +723,9 @@ delta_EStatus delta_LoadString(delta_SState* D, const delta_TChar str[]) {
 	return DELTA_OK;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_SetPrintFunction
  */
 delta_EStatus delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func) {
@@ -741,7 +739,7 @@ delta_EStatus delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func)
 	return DELTA_OK;
 }
 
-/* ====================================
+/* ****************************************
  * delta_SetInputFunction
  */
 delta_EStatus delta_SetInputFunction(delta_SState* D, delta_TInputFunction func) {

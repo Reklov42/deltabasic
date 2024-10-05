@@ -1,11 +1,9 @@
-//
-
-//	| File:			dstate.c
-//	| Description:	
-//	| Created:		3 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dstate.c
+ * \brief	DeltaBASIC state
+ * \date	3 feb 2024
+ * \author	Reklov
+ */
 #include "dstate.h"
 
 #include <string.h>
@@ -15,9 +13,9 @@
 #include "dstring.h"
 
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_InsertLine
  */
 delta_TBool delta_InsertLine(delta_SState* D, size_t lineNumber, const delta_TChar str[], size_t strSize) {
@@ -99,7 +97,7 @@ delta_TBool delta_InsertLine(delta_SState* D, size_t lineNumber, const delta_TCh
 	return dfalse;
 }
 
-/* ====================================
+/* ****************************************
  * delta_RemoveLine
  */
 void delta_RemoveLine(delta_SState* D, size_t line) {
@@ -133,16 +131,16 @@ void delta_RemoveLine(delta_SState* D, size_t line) {
 	}
 }
 
-/* ====================================
+/* ****************************************
  * delta_FreeNode
  */
 inline void delta_FreeNode(delta_SState* D, delta_SLine* line) {
 	DELTA_Free(D, line, sizeof(delta_SLine) + (delta_Strlen(line->str) + 1) * sizeof(delta_TChar));
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_FindOrAddNumericVariable
  */
 delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, const delta_TChar str[], uint16_t size) {
@@ -172,16 +170,16 @@ delta_SNumericVariable* delta_FindOrAddNumericVariable(delta_SState* D, const de
 	return var;
 }
 
-/* ====================================
+/* ****************************************
  * delta_FreeNumericVariable
  */
 void delta_FreeNumericVariable(delta_SState* D, delta_SNumericVariable* variable) {
 	DELTA_Free(D, variable, sizeof(delta_SNumericVariable) + (delta_Strlen(variable->name) + 1) * sizeof(delta_TChar));
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_FindOrAddStringVariable
  */
 delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delta_TChar str[], uint16_t size) {
@@ -211,7 +209,7 @@ delta_SStringVariable* delta_FindOrAddStringVariable(delta_SState* D, const delt
 	return var;
 }
 
-/* ====================================
+/* ****************************************
  * delta_FreeStringVariable
  */
 void delta_FreeStringVariable(delta_SState* D, delta_SStringVariable* variable) {
@@ -222,12 +220,10 @@ void delta_FreeStringVariable(delta_SState* D, delta_SStringVariable* variable) 
 	DELTA_Free(D, variable, sizeof(delta_SStringVariable) + (delta_Strlen(variable->name) + 1) * sizeof(delta_TChar));
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_FindOrAddNumericArray
- * 
- * size - size of name in string with a null-terminal
  */
 delta_SNumericArray* delta_FindOrAddNumericArray(delta_SState* D, const delta_TChar str[], uint16_t size) {
 	if (D == NULL)
@@ -256,12 +252,10 @@ delta_SNumericArray* delta_FindOrAddNumericArray(delta_SState* D, const delta_TC
 	return var;
 }
 
-/* ====================================
+/* ****************************************
  * delta_FreeNumericArray
- *
- * Only free the array. Doesn't fix the list
  */
-void				delta_FreeNumericArray(delta_SState* D, delta_SNumericArray* array) {
+void delta_FreeNumericArray(delta_SState* D, delta_SNumericArray* array) {
 	if (array->array != NULL) {
 		DELTA_Free(D, array->array, sizeof(delta_TNumber) * (array->size));
 	}
@@ -269,12 +263,10 @@ void				delta_FreeNumericArray(delta_SState* D, delta_SNumericArray* array) {
 	DELTA_Free(D, array, sizeof(delta_SNumericArray) + (delta_Strlen(array->name) + 1) * sizeof(delta_TChar));
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_FindOrAddStringArray
- * 
- * size - size of name in string with a null-terminal
  */
 delta_SStringArray* delta_FindOrAddStringArray(delta_SState* D, const delta_TChar str[], uint16_t size) {
 	if (D == NULL)
@@ -303,12 +295,10 @@ delta_SStringArray* delta_FindOrAddStringArray(delta_SState* D, const delta_TCha
 	return var;
 }
 
-/* ====================================
+/* ****************************************
  * delta_FreeStringArray
- *
- * Only free the array. Doesn't fix the list
  */
-void				delta_FreeStringArray(delta_SState* D, delta_SStringArray* array) {
+void delta_FreeStringArray(delta_SState* D, delta_SStringArray* array) {
 	if (array->array != NULL) {
 		for (size_t i = 0; i < array->size; ++i) {
 			if (array->array[i] != NULL) {
@@ -322,9 +312,9 @@ void				delta_FreeStringArray(delta_SState* D, delta_SStringArray* array) {
 	DELTA_Free(D, array, sizeof(delta_SStringArray) + (delta_Strlen(array->name) + 1) * sizeof(delta_TChar));
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_FreeStringVariable
  */
 void delta_FreeStringStack(delta_SState* D) {
@@ -335,9 +325,9 @@ void delta_FreeStringStack(delta_SState* D) {
 	D->stringHead = 0;
 }
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/* ****************************************
  * delta_FindCFunction
  */
 delta_TBool delta_FindCFunction(delta_SState* D, const delta_TChar name[], uint16_t size, size_t* index) {
@@ -353,7 +343,7 @@ delta_TBool delta_FindCFunction(delta_SState* D, const delta_TChar name[], uint1
 	return dfalse;
 }
 
-/* ====================================
+/* ****************************************
  * delta_FreeCFunction
  */
 void delta_FreeCFunction(delta_SState* D, delta_SCFunction* function) {

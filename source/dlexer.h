@@ -1,31 +1,29 @@
-//
-
-//	| File:			dlexer.h
-//	| Description:	
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	dlexer.h
+ * \brief	Lexer
+ * \date	1 feb 2024
+ * \author	Reklov
+ */
 #ifndef __DELTABASIC_LEXER_H__
 #define __DELTABASIC_LEXER_H__
 
 #include "dlimits.h"
 #include "deltabasic.h"
 
-					//										//										//
+// ******************************************************************************** //
 
-/* ====================================
- * delta_ReadInteger
+/**
+ * Find and read integer from `str`
  *
- * Returns a string pointer with offset, on error returns NULL.
- * Skips spaces.
+ * \returns a string pointer with offset, on error returns NULL.
+ * \note Skips spaces.
  */
 const delta_TChar*	delta_ReadInteger(const delta_TChar str[], delta_TInteger* value);
   
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
- * delta_EOp
+/**
+ * DeltaBASIC lexer opcodes
  */
 typedef enum {
 	OP_NONE,
@@ -47,9 +45,9 @@ typedef enum {
 	OP_TO,
 } delta_EOp;
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/**
  * delta_ESym
  */
 typedef enum {
@@ -59,9 +57,9 @@ typedef enum {
 	SYM_DIV,
 } delta_ESym;
 
-// ------------------------------------------------------------------------- //
+// ******************************************************************************** //
 
-/* ====================================
+/**
  * delta_ELexemType
  */
 typedef enum delta_ELexemType {
@@ -74,7 +72,7 @@ typedef enum delta_ELexemType {
 	LEXEM_EOL
 } delta_ELexemType;
 
-/* ====================================
+/**
  * delta_SLexemString
  */
 typedef struct {
@@ -82,7 +80,7 @@ typedef struct {
 	uint16_t size;
 } delta_SLexemString;
 
-/* ====================================
+/**
  * delta_SLexerState
  */
 typedef struct delta_SLexerState {
@@ -99,7 +97,7 @@ typedef struct delta_SLexerState {
 	const delta_TChar* head;
 } delta_SLexerState;
 
-/* ====================================
+/**
  * delta_EParseStatus
  */
 typedef enum delta_EParseStatus {
@@ -109,8 +107,8 @@ typedef enum delta_EParseStatus {
 	PARSE_UNEXPECTED_NULL_TERMINAL,
 } delta_EParseStatus;
 
-/* ====================================
- * delta_EParseStatus
+/**
+ * Parse next lexem
  */
 delta_EParseStatus	delta_Parse(delta_SLexerState* L);
 

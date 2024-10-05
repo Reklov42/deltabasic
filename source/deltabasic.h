@@ -1,11 +1,9 @@
-//
-
-//	| File:			DeltaBasic.h
-//	| Description:	Header to include as a library
-//	| Created:		1 feb 2024
-//	| Author:		Reklov
-//
-///////////////////////////////////////////////////////////////////////////////
+/**
+ * \file	deltabasic.h
+ * \brief	DeltaBASIC API
+ * \date	1 feb 2024
+ * \author	Reklov
+ */
 #ifndef __DELTABASIC_H__
 #define __DELTABASIC_H__
 
@@ -13,16 +11,15 @@
 
 #include "deltabasic_config.h"
 
-					//										//										//
 typedef DELTABASIC_CONFIG_NUMBER							delta_TNumber;
 typedef DELTABASIC_CONFIG_CHAR								delta_TChar;
 
-// ------------------------------------------------------------------------- //
-//
+// ******************************************************************************** //
+// State
 //
 
-/* ====================================
- * delta_EStatus
+/**
+ * DeltaBASIC status values
  */
 typedef enum {
 	DELTA_OK,
@@ -60,87 +57,89 @@ typedef enum {
 	DELTA_MATH_STATUS,
 } delta_EStatus;
 
-/* ====================================
- * delta_SState
+/**
+ * DeltaBASIC state structure
  */
 typedef struct delta_SState delta_SState;
 
-/* ====================================
- * delta_TAllocFunction
- *
- * When newSize is zero, the allocator must return NULL.
- * If currentSize is not zero and newSize is zero, it should free the block pointed to by ptr
- * If currentSize is not zero and newSize is not zero, it should behave like realloc.
- * The allocator is assumed to never fail if currentSize >= newSize.
+/**
+ * \brief User allocator
  * 
- * ptr is NULL if and only if currentSize is zero.
- * If reallocation returns NULL, it MUST free ptr.
+ * \note When `newSize` is zero, the allocator must return `NULL`.
+ * If `currentSize` is not zero and `newSize` is zero, it should free the block pointed to by `ptr`.
+ * If `currentSize` is not zero and `newSize` is not zero, it should behave like realloc.
+ * The allocator is assumed to never fail if `currentSize >= newSize`.
+ * 
+ * `ptr` is `NULL` if and only if `currentSize` is zero.
+ * If reallocation returns `NULL`, it MUST free `ptr`.
  */
 typedef void* (*delta_TAllocFunction)(void* ptr, size_t currentSize, size_t newSize, void* userData);
 
-/* ====================================
- * delta_CreateState
+/**
+ * Create new DeltaBASIC state.
+ * 
+ * If `allocFunc` is `NULL`, `malloc/free` based allocator will be used.
  */
 delta_SState*		delta_CreateState(delta_TAllocFunction allocFunc, void* allocFuncUserData);
 
-/* ====================================
+/**
  * delta_ReleaseState
  */
 void				delta_ReleaseState(delta_SState* D);
 
-// ------------------------------------------------------------------------- //
-//
+// ******************************************************************************** //
+// C-side variables and commands
 //
 
-/* ====================================
- * delta_Run
+/**
+ * Run code from first line
  */
 delta_EStatus		delta_Run(delta_SState* D);
 
-/* ====================================
- * delta_GotoLine
+/**
+ * Run code from `line`
  */
-delta_EStatus		delta_GotoLine(delta_SState* D, size_t line);
+delta_EStatus		delta_GotoLine(delta_SState* D, size_t line); // TODO: implement
 
-/* ====================================
+/**
  * delta_New
  *
  * Delete all lines, variables and clear bytecode buffer
  */
-delta_EStatus		delta_New(delta_SState* D);
+delta_EStatus		delta_New(delta_SState* D); // TODO: implement
 
-/* ====================================
- * delta_GetLastLine
+/**
+ * \param[out] line last line number
  */
 delta_EStatus		delta_GetLastLine(delta_SState* D, size_t* line);
 
-/* ====================================
- * delta_SetNumeric
+/**
+ * Set numeric variable
  */
 delta_EStatus		delta_SetNumeric(delta_SState* D, const char name[], delta_TNumber value);
 
-/* ====================================
- * delta_GetNumeric
+/**
+ * Get numeric variable
  */
 delta_EStatus		delta_GetNumeric(delta_SState* D, const char name[], delta_TNumber* value);
 
-/* ====================================
- * delta_SetString
+/**
+ * Set string variable
  */
 delta_EStatus		delta_SetString(delta_SState* D, const char name[], const char value[]);
 
-/* ====================================
- * delta_GetString
+/**
+ * Get string variable
  *
- * DO NOT save a pointer, just copy the data
+ * \warning DO NOT save a pointer, just copy the data
  */
 delta_EStatus		delta_GetString(delta_SState* D, const char name[], const char* value[]);
 
-// ------------------------------------------------------------------------- //
-//
+// ******************************************************************************** //
+// C-side Function
 //
 
-/* ====================================
+/**
  * delta_ECFuncArgType
  *
  * Used in bit field
@@ -150,101 +149,99 @@ typedef enum {
 	DELTA_CFUNC_ARG_STRING = 1
 } delta_ECFuncArgType;
 
-/* ====================================
+/**
  * delta_GetArgType
  */
 //delta_EStatus		delta_GetArgType(delta_SState* D, size_t index, delta_ECFuncArgType* type);
 
-/* ====================================
+/**
  * delta_SetNumeric
  */
 delta_EStatus		delta_GetArgNumeric(delta_SState* D, size_t index, delta_TNumber* value);
 
-/* ====================================
+/**
  * delta_GetArgString
  *
- * DO NOT save a pointer, just copy the data
+ * \warning DO NOT save a pointer, just copy the data
  */
 delta_EStatus		delta_GetArgString(delta_SState* D, size_t index, const char* value[]);
 
-/* ====================================
+/**
  * delta_ReturnNumeric
  */
 delta_EStatus		delta_ReturnNumeric(delta_SState* D, delta_TNumber value);
 
-/* ====================================
+/**
  * delta_ReturnString
  */
 delta_EStatus		delta_ReturnString(delta_SState* D, const char value[]);
 
-/* ====================================
+/**
  * delta_TCFunction
  */
 typedef delta_EStatus (*delta_TCFunction)(delta_SState* D);
 
-/* ====================================
+/**
  * delta_RegisterCFunction
  */
 delta_EStatus		delta_RegisterCFunction(delta_SState* D, const char name[], delta_ECFuncArgType argsType[], size_t argCount, delta_ECFuncArgType returnType, delta_TCFunction func);
 
-// ------------------------------------------------------------------------- //
-//
+// ******************************************************************************** //
+// Execution
 //
 
-/* ====================================
+/**
  * delta_Execute
  */
 delta_EStatus		delta_Execute(delta_SState* D, const char str[]);
 
-/* ====================================
- * delta_Interpret
- *
- * Interpret nInstructions VM's instructions
- * If N set to zero, interpret all code
+/**
+ * Interpret `nInstructions` VM's instructions
+ * If `nInstructions` set to zero, interpret all code
  */
 delta_EStatus		delta_Interpret(delta_SState* D, size_t nInstructions);
 
-// ------------------------------------------------------------------------- //
-//
+// ******************************************************************************** //
+// File IO
 //
 
-/* ====================================
+/**
  * delta_TReadFunction
  */
 typedef size_t (*delta_TReadFunction)(void* pData, size_t size, size_t count);
 
-/* ====================================
+/**
  * delta_Load
  */
-delta_EStatus		delta_Load(delta_SState* D, delta_TReadFunction readFunc);
+delta_EStatus		delta_Load(delta_SState* D, delta_TReadFunction readFunc); // TODO: implement
 
-/* ====================================
+/**
  * delta_LoadString
  */
 delta_EStatus		delta_LoadString(delta_SState* D, const delta_TChar str[]);
 
-// ------------------------------------------------------------------------- //
-//
+// ******************************************************************************** //
+// Terminal IO
 //
 
-/* ====================================
- * delta_TPrintFunction
+/**
+ * User function for `PRINT` command
  */
 typedef int (*delta_TPrintFunction)(const delta_TChar str[], size_t size);
 
-/* ====================================
+/**
  * delta_SetPrintFunction
  */
 delta_EStatus		delta_SetPrintFunction(delta_SState* D, delta_TPrintFunction func);
 
-/* ====================================
- * delta_TInputFunction
+/**
+ * User function for `INPUT` command
  *
- * Returns filled size or -1 on error
+ * \returns filled size or -1 on error
  */
 typedef int (*delta_TInputFunction)(delta_TChar* buffer, size_t size);
 
-/* ====================================
+/**
  * delta_SetInputFunction
  */
 delta_EStatus		delta_SetInputFunction(delta_SState* D, delta_TInputFunction func);
