@@ -190,7 +190,7 @@ delta_EStatus CompileCall(delta_SState* D, delta_SLexerState* L, delta_SBytecode
 	PushAssert(PushBytecodeByte(D, BC, (bReturn == dtrue) ? OPCODE_CALLR : OPCODE_CALL));
 	PushAssert(PushBytecodeWord(D, BC, index));
 
-	CompileInstructionParseAssert();
+	//CompileInstructionParseAssert();
 
 	return DELTA_OK;
 }
@@ -465,7 +465,7 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 				return DELTA_SYNTAX_ERROR;
 
 			if (L->symbol == '=') { // String Assignment
-			MathStatusAssert(CompileMath(D, L, BC, MATH_OK_STRING), MATH_OK_STRING);
+				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_STRING), MATH_OK_STRING);
 
 				PushAssert(PushBytecodeByte(D, BC, OPCODE_SETS));
 				PushAssert(PushBytecodeWord(D, BC, name.offset));
@@ -475,6 +475,7 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 				size_t index;
 				if (delta_FindCFunction(D, L->buffer + name.offset, name.size, &index) == dtrue) { // String Function call
 					StatusAssert(CompileCall(D, L, BC, index, DELTA_CFUNC_ARG_STRING, dfalse));
+					CompileInstructionParseAssert();
 				}
 				else { // String Array
 					MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
@@ -508,6 +509,7 @@ delta_EStatus CompileInstruction(delta_SState* D, delta_SLexerState* L, delta_SB
 			size_t index;
 			if (delta_FindCFunction(D, L->buffer + name.offset, name.size, &index) == dtrue) { // Numeric Function call
 				StatusAssert(CompileCall(D, L, BC, index, DELTA_CFUNC_ARG_NUMERIC, dfalse));
+				CompileInstructionParseAssert();
 			}
 			else { // Numeric Array
 				MathStatusAssert(CompileMath(D, L, BC, MATH_OK_NUMERIC), MATH_OK_NUMERIC);
