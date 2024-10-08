@@ -140,14 +140,19 @@ delta_EStatus delta_CompileLine(delta_SState* D, delta_SLine* L, delta_TChar* st
 		if (delta_Parse(&lexem) != PARSE_OK)
 			return DELTA_SYNTAX_ERROR;
 
+		// If last instruction was a single OP (NEXT, RETURN, etc)
+		// that does not parse `:`, do it manually
+		if ((lexem.type == LEXEM_SYMBOL) && (lexem.symbol == ':')) {
+			if (delta_Parse(&lexem) != PARSE_OK)
+				return DELTA_SYNTAX_ERROR;
+		}
+
 		delta_EStatus status = CompileInstruction(D, &lexem, BC);
 		if (status != DELTA_OK)
 			return status;
 
-		if (lexem.type == LEXEM_SYMBOL) {
-			if (lexem.symbol != ':')
-				return DELTA_SYNTAX_ERROR;
-		}
+		if ((lexem.type == LEXEM_SYMBOL) && (lexem.symbol != ':'))
+			return DELTA_SYNTAX_ERROR;
 	}
 
 	PushAssert(PushBytecodeByte(D, BC, OPCODE_NEXTL));
