@@ -129,6 +129,13 @@ size_t FormatNumeric(delta_TChar str[], size_t strSize, delta_TNumber number);
  */
 size_t PrintTabs(delta_SState* D, size_t size);
 
+/**
+ * CopyStringToStack
+ * 
+ * \warning DOES NOT CHECK STACK OVERFLOW
+ */
+delta_TBool CopyStringToStack(delta_SState* D, delta_TChar str[]);
+
 // ******************************************************************************** //
 
 /**
@@ -573,20 +580,8 @@ delta_EStatus MachineGetString(delta_SState* D) {
 	if (var == NULL)
 		return DELTA_ALLOCATOR_ERROR;
 
-	size_t strSize = 0;
-	if (var->str)
-		strSize = delta_Strlen(var->str);
-	
-	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (strSize + 1));
-	if (str == NULL)
+	if (CopyStringToStack(D, var->str) == dfalse)
 		return DELTA_ALLOCATOR_ERROR;
-
-	if (var->str)
-		memcpy(str, var->str, sizeof(delta_TChar) * strSize);
-		
-	str[strSize] = '\0';
-
-	D->stringStack[(D->stringHead)++] = str;
 
 	D->ip += 4;
 	return DELTA_OK;
@@ -1173,15 +1168,8 @@ delta_EStatus MachineGetStringArray(delta_SState* D) {
 	if (array->array[(size_t)index] == NULL) // Just check
 		return DELTA_ALLOCATOR_ERROR;
 
-	size_t strSize = delta_Strlen(array->array[(size_t)index]);
-	delta_TChar* str = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (strSize + 1));
-	if (str == NULL)
+	if (CopyStringToStack(D, array->array[(size_t)index]) == dfalse)
 		return DELTA_ALLOCATOR_ERROR;
-
-	memcpy(str, array->array[(size_t)index], sizeof(delta_TChar) * strSize);
-	str[strSize] = '\0';
-
-	D->stringStack[(D->stringHead)++] = str;
 	
 	D->ip += 4;
 	return DELTA_OK;
@@ -1422,4 +1410,26 @@ size_t PrintTabs(delta_SState* D, size_t size) {
 
 	const delta_TChar tabBuffer[DELTABASIC_PRINT_TAB_SIZE] = { ' ' };
 	return D->printFunction(tabBuffer, size);
+}
+
+/* ****************************************
+ * CopyStringToStack
+ */
+inline delta_TBool CopyStringToStack(delta_SState *D, delta_TChar str[]) {
+	size_t strSize = 0;
+	if (str)
+		strSize = delta_Strlen(str);
+	
+	delta_TChar* tmp = (delta_TChar*)DELTA_Alloc(D, sizeof(delta_TChar) * (strSize + 1));
+	if (tmp == NULL)
+		return dfalse;
+
+	if (str)
+		memcpy(tmp, str, sizeof(delta_TChar) * strSize);
+		
+	tmp[strSize] = '\0';
+
+	D->stringStack[(D->stringHead)++] = tmp;
+
+	return dtrue;
 }
