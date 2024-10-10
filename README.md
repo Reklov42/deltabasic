@@ -1,6 +1,8 @@
 # DELTA BASIC
 
-The implementation of the Minimal BASIC ([ECMA-55](https://ecma-international.org/wp-content/uploads/ECMA-55_1st_edition_january_1978.pdf)) for my "old school" terminal web page
+The implementation (not complete) of the Minimal BASIC ([ECMA-55](https://ecma-international.org/wp-content/uploads/ECMA-55_1st_edition_january_1978.pdf)) for my "old school" terminal web page
+
+The main idea of the implementation is to simulate the execution speed as on an old machine, so the project consists of a compiler and a virtual machine. The compiler makes direct byte code from lines, and the VM allows you to execute the required number of operations per call of `delta_Interpret`.
 
 * [ΔBASIC](#δbasic)
 * [Build](#build)
@@ -11,7 +13,7 @@ The implementation of the Minimal BASIC ([ECMA-55](https://ecma-international.or
 ## ΔBASIC
 
 ```text
-Keywolds:
+Keywords:
     DIM, END, FOR, GOSUB, GOTO, IF, INPUT, LET, NEXT, PRINT, RETURN, RUN, STEP, STOP, THEN, TO
 
 Math operations:
@@ -65,7 +67,7 @@ Example with all deltaBASIC features
 340 FOR J = 2 TO 200 STEP 20    : REM You can set the increment value
 350 PRINT J : NEXT
 400 REM --------- Jumps --------
-410 GOTO 420                    : REM Jump to line 420
+410 GOTO 430                    : REM Jump to line 430
 420 PRINT "Some ignored code..."
 430 GOSUB 460                   : REM Save next line number and GOTO 460
 440 PRINT "Some fancy code..."
@@ -146,6 +148,7 @@ int main() {
 ## TODO or not TODO
 
 * Arrays as API arguments
-* Arrays as `INPUT` arguments
+* Arrays as API return value?
+* Array element as `INPUT` arguments
 * Multiline block for `IF`
 * Named jump labels?
