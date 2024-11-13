@@ -1,8 +1,11 @@
 {
-    "version": "2.0.0",
-    "scanPath": "source/",
-    "buildPath": "build/",
-    "tmpPath": "build/tmp/",
+    "version": "3.0.0",
+    "type": "c/cpp",
+    "paths": {
+        "scan": [ "source/" ],
+        "build": "build/",
+        "tmp": "build/tmp/"
+    },
     "files": [
         "source/dlexer.c",
         "source/dstate.c",
@@ -12,78 +15,65 @@
         "source/dstring.c",
         "source/dmachine.c"
     ],
-    "headers": [],
     "builds": {
         "default": {
             "type": "exec",
-            "includePaths": [
-                "source/"
-            ],
-            "libPaths": [],
-            "defines": [],
+            "paths": {
+                "include": [ "source/" ]
+            },
             "compiler": "gcc",
             "compilerFlags": "-O2 -Wall -Wno-enum-compare -std=gnu99",
             "linker": "gcc",
             "linkerFlags": "-O2 -Wall -std=gnu99 -lm",
-            "staticLibs": [],
+            "pre": "echo hello",
             "outname": "dbas"
         },
         "debug": {
             "type": "exec",
-            "includePaths": [
-                "source/"
-            ],
-            "libPaths": [],
-            "defines": [],
+            "paths": {
+                "include": [ "source/" ]
+            },
             "compiler": "gcc",
             "compilerFlags": "-g -std=gnu99 -lm",
             "linker": "gcc",
             "linkerFlags": "-g -std=gnu99 -lm",
-            "staticLibs": [],
             "outname": "dbas_debug"
         },
         "debug_leak": {
             "type": "exec",
-            "includePaths": [
-                "source/"
-            ],
-            "libPaths": [],
-            "defines": [],
+            "paths": {
+                "include": [ "source/" ]
+            },
             "compiler": "gcc",
             "compilerFlags": "-fsanitize=address -static-libasan -g -std=gnu99 -lm",
             "linker": "gcc",
             "linkerFlags": "-fsanitize=address -g -std=gnu99 -lm",
-            "staticLibs": [],
             "outname": "dbas_debug_leak"
         },
         "lib": {
             "type": "lib",
-            "includePaths": [
-                "source/"
-            ],
-            "libPaths": [],
+            "paths": {
+                "include": [ "source/" ]
+            },
             "defines": [
                 "__DELTABASIC_LIB__"
             ],
             "compiler": "gcc",
             "compilerFlags": "-O2 -std=gnu99",
             "archiver": "ar",
-            "staticLibs": [],
             "outname": "libdbas.a"
         },
         "em_lib": {
             "type": "lib",
-            "includePaths": [
-                "source/"
-            ],
-            "libPaths": [],
+            "paths": {
+                "include": [ "source/" ]
+            },
             "defines": [
                 "__DELTABASIC_LIB__"
             ],
             "compiler": "emcc",
             "compilerFlags": "-O2 -std=gnu99 -Wall -Wno-enum-conversion -Wno-enum-compare",
             "archiver": "emar",
-            "staticLibs": [],
             "outname": "libemdbas.a"
         }
     }
